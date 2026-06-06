@@ -1,4 +1,5 @@
 flask
+gunicorn
 mysql-connector-python
 opencv-python-headless
 python-dotenv
