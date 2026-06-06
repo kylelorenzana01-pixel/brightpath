@@ -14,9 +14,10 @@ from dotenv import load_dotenv
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_wtf.csrf import CSRFProtect, CSRFError
-from flask_talisman import Talisman   # optional, for production
+# from flask_talisman import Talisman   # ❌ commented because it's not installed on Render
 import subprocess
 from flask import make_response
+
 # Load environment variables
 load_dotenv()
 
@@ -24,7 +25,16 @@ load_dotenv()
 from modules.camera import VideoCamera
 from modules.database import db_connection
 from modules.trainer import train_faces
-train_faces()
+
+# Only train faces if face login is enabled AND we have face images
+if os.getenv('DISABLE_FACE_LOGIN', 'False').lower() == 'false':
+    faces_dir = 'static/faces'
+    if os.path.exists(faces_dir) and len(os.listdir(faces_dir)) > 0:
+        train_faces()
+    else:
+        print("⚠️ No face images found – skipping face training.")
+else:
+    print("ℹ️ Face login is disabled for online deployment – skipping training.")
 
 # Email imports
 from flask_mail import Mail, Message
