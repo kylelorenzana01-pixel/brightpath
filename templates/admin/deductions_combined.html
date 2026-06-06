@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deductions & Contributions | BrightPath Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin/dashboard.css') }}">
+    <style>
+        .kpi-card {
+            background: white;
+            border-radius: 20px;
+            padding: 1.2rem;
+            transition: transform 0.2s;
+            border: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+        }
+        .kpi-card:hover { transform: translateY(-3px); box-shadow: 0 12px 20px rgba(0,0,0,0.05); }
+        .kpi-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+        }
+        .kpi-value { font-size: 1.7rem; font-weight: 800; }
+        .breakdown-table th { background: #f8fafc; font-weight: 600; color: #1e293b; }
+        .total-row { background: #f1f5f9; font-weight: 700; }
+        .date-badge {
+            background: white;
+            border-radius: 40px;
+            padding: 0.5rem 1rem;
+            font-weight: 500;
+            font-size: 0.85rem;
+            border: 1px solid #e2e8f0;
+            cursor: pointer;
+        }
+        .settings-card {
+            background: #fefce8;
+            border-left: 4px solid #eab308;
+        }
+    </style>
+</head>
+<body>
+
+<aside class="admin-sidebar">
+    <div class="sidebar-brand"><h3>BrightPath</h3><small>ADMIN PANEL</small></div>
+     <nav class="nav flex-column">
+    <!-- Dashboard -->
+    <a class="nav-link {{ 'active' if request.endpoint == 'admin_dashboard' and 'dashboard-tab' in request.url else '' }}" 
+       href="{{ url_for('admin_dashboard') }}#dashboard-tab" data-tab="dashboard-tab">
+        <i class="fas fa-chart-line"></i> <span>Dashboard</span>
+    </a>
+    
+    <!-- Employees -->
+    <a class="nav-link {{ 'active' if request.endpoint == 'admin_dashboard' and 'employees-tab' in request.url else '' }}" 
+       href="{{ url_for('admin_dashboard') }}#employees-tab" data-tab="employees-tab">
+        <i class="fas fa-users"></i> <span>Employees</span>
+    </a>
+    
+    <!-- Payroll (unified generation) -->
+    <a class="nav-link {{ 'active' if request.endpoint == 'admin_dashboard' and 'payroll-tab' in request.url else '' }}" 
+       href="{{ url_for('admin_dashboard') }}#payroll-tab" data-tab="payroll-tab">
+        <i class="fas fa-money-check-alt"></i> <span>Payroll</span>
+    </a>
+    
+    <!-- Payroll List (full page) -->
+    <a class="nav-link {{ 'active' if request.endpoint == 'admin_payroll_list' else '' }}" 
+       href="{{ url_for('admin_payroll_list') }}">
+        <i class="fas fa-list-ul"></i> <span>Payroll List</span>
+    </a>
+    
+    <!-- Deductions & Contributions (combined page) -->
+    <a class="nav-link {{ 'active' if request.endpoint == 'admin_deductions_combined' else '' }}" 
+       href="{{ url_for('admin_deductions_combined') }}">
+        <i class="fas fa-calculator"></i> <span>Deductions & Contributions</span>
+    </a>
+    
+    <!-- Leaves -->
+    <a class="nav-link {{ 'active' if request.endpoint == 'admin_dashboard' and 'leaves-tab' in request.url else '' }}" 
+       href="{{ url_for('admin_dashboard') }}#leaves-tab" data-tab="leaves-tab">
+        <i class="fas fa-calendar-alt"></i> <span>Leaves</span>
+    </a>
+    
+    <!-- Overtime Requests -->
+    <a class="nav-link {{ 'active' if request.endpoint == 'admin_overtime_requests' else '' }}" 
+       href="{{ url_for('admin_overtime_requests') }}">
+        <i class="fas fa-clock"></i> <span>Overtime Requests</span>
+    </a>
+    
+    <!-- Attendance (full page) -->
+    <a class="nav-link {{ 'active' if request.endpoint == 'admin_attendance_list' else '' }}" 
+       href="{{ url_for('admin_attendance_list') }}">
+        <i class="fas fa-calendar-check"></i> <span>Attendance</span>
+    </a>
+    
+    <!-- Timesheet (full page) -->
+    <a class="nav-link {{ 'active' if request.endpoint == 'admin_timesheet' else '' }}" 
+       href="{{ url_for('admin_timesheet') }}">
+        <i class="fas fa-clipboard-list"></i> <span>Timesheet</span>
+    </a>
+    
+     
+    
+    <!-- Reports -->
+    <a class="nav-link {{ 'active' if request.endpoint == 'admin_dashboard' and 'reports-tab' in request.url else '' }}" 
+       href="{{ url_for('admin_dashboard') }}#reports-tab" data-tab="reports-tab">
+        <i class="fas fa-file-alt"></i> <span>Reports</span>
+    </a>
+    <a class="nav-link {{ 'active' if request.endpoint == 'admin_holidays' else '' }}" href="{{ url_for('admin_holidays') }}"><i class="fas fa-calendar-day"></i> Holiday Management</a>
+        <a class="nav-link {{ 'active' if request.endpoint == 'admin_audit_logs' else '' }}" href="{{ url_for('admin_audit_logs') }}"><i class="fas fa-history"></i> Audit Logs</a>
+        <a class="nav-link {{ 'active' if request.endpoint == 'admin_backup_restore_page' else '' }}" href="{{ url_for('admin_backup_restore_page') }}"><i class="fas fa-database"></i> Backup & Restore</a>
+</nav>
+    <div class="logout-btn"><a href="/logout" class="nav-link"><i class="fas fa-sign-out-alt"></i> Logout</a></div>
+</aside>
+
+<main class="admin-main">
+    <div class="admin-header">
+        <div class="header-title">
+            <h1>Deductions & Contributions</h1>
+            <p>Manage statutory rates and view real‑time breakdown</p>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <div class="date-badge" id="dateRangeBadge" onclick="toggleDatePicker()">
+                <i class="fas fa-calendar-alt"></i> 
+                <span id="dateRangeText">{{ start_date }} to {{ end_date }}</span>
+            </div>
+            <div class="header-clock">
+                <h3 id="liveClock" class="mb-0">--:--:--</h3>
+                <small id="liveDate">Loading date...</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden date picker form -->
+    <div id="datePickerForm" style="display: none; margin-bottom: 1rem; background: white; padding: 1rem; border-radius: 16px;">
+        <form method="GET" action="{{ url_for('admin_deductions_combined') }}" class="row g-2">
+            <div class="col-auto"><label>Start Date</label><input type="date" name="start_date" class="form-control" value="{{ start_date }}"></div>
+            <div class="col-auto"><label>End Date</label><input type="date" name="end_date" class="form-control" value="{{ end_date }}"></div>
+            <div class="col-auto d-flex align-items-end">
+                <button type="submit" class="btn btn-primary">Apply</button>
+                <button type="button" class="btn btn-secondary ms-2" onclick="toggleDatePicker()">Cancel</button>
+            </div>
+        </form>
+    </div>
+
+     
+
+    <!-- KPI Cards Row (unchanged) -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-2 col-sm-6">
+            <div class="kpi-card text-center">
+                <div class="kpi-icon mx-auto mb-2" style="background: #eef2ff; color: #6366f1;"><i class="fas fa-shield-alt"></i></div>
+                <div class="kpi-value">₱{{ "{:,.2f}".format(totals.total_sss) }}</div>
+                <div class="text-muted small">SSS Contribution</div>
+            </div>
+        </div>
+        <div class="col-md-2 col-sm-6">
+            <div class="kpi-card text-center">
+                <div class="kpi-icon mx-auto mb-2" style="background: #e6f7e6; color: #10b981;"><i class="fas fa-hospital-user"></i></div>
+                <div class="kpi-value">₱{{ "{:,.2f}".format(totals.total_philhealth) }}</div>
+                <div class="text-muted small">PhilHealth</div>
+            </div>
+        </div>
+        <div class="col-md-2 col-sm-6">
+            <div class="kpi-card text-center">
+                <div class="kpi-icon mx-auto mb-2" style="background: #fef9e3; color: #f59e0b;"><i class="fas fa-home"></i></div>
+                <div class="kpi-value">₱{{ "{:,.2f}".format(totals.total_pagibig) }}</div>
+                <div class="text-muted small">Pag-IBIG</div>
+            </div>
+        </div>
+        <div class="col-md-2 col-sm-6">
+            <div class="kpi-card text-center">
+                <div class="kpi-icon mx-auto mb-2" style="background: #fee2e2; color: #ef4444;"><i class="fas fa-file-invoice-dollar"></i></div>
+                <div class="kpi-value">₱{{ "{:,.2f}".format(totals.total_tax) }}</div>
+                <div class="text-muted small">Withholding Tax</div>
+            </div>
+        </div>
+        <div class="col-md-2 col-sm-6">
+            <div class="kpi-card text-center">
+                <div class="kpi-icon mx-auto mb-2" style="background: #e0f2fe; color: #0ea5e9;"><i class="fas fa-credit-card"></i></div>
+                <div class="kpi-value">₱{{ "{:,.2f}".format(totals.other_deductions) }}</div>
+                <div class="text-muted small">Other Deductions</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Breakdown Table (unchanged) -->
+    <div class="admin-card">
+        <div class="card-header">
+            <h3><i class="fas fa-table me-2"></i> Detailed Breakdown</h3>
+            {% if dummy %}
+            <span class="badge bg-warning">Sample data – generate payroll for real figures</span>
+            {% endif %}
+        </div>
+        <div class="admin-table-container">
+            <table class="admin-table breakdown-table">
+                <thead>
+                    <tr><th>Description</th><th>Employee Share (₱)</th><th>Employer Share (₱)</th><th>Total (₱)</th><th>Percentage (%)</th></td>
+                </thead>
+                <tbody>
+                    {% for item in breakdown %}
+                    <tr>
+                        <td><strong>{{ item.desc }}</strong></td>
+                        <td>₱{{ "{:,.2f}".format(item.employee_share) }}</td>
+                        <td>₱{{ "{:,.2f}".format(item.employer_share) }}</td>
+                        <td class="fw-bold">₱{{ "{:,.2f}".format(item.total) }}</td>
+                        <td>{{ "{:.2f}".format(item.percentage) }}%</td
+                    </tr>
+                    {% endfor %}
+                    <tr class="total-row">
+                        <td><strong>TOTAL</strong></td>
+                        <td><strong>₱{{ "{:,.2f}".format(totals_row.total_employee) }}</strong></td>
+                        <td><strong>₱{{ "{:,.2f}".format(totals_row.total_employer) }}</strong></td>
+                        <td><strong>₱{{ "{:,.2f}".format(totals_row.total_all) }}</strong></td>
+                        <td><strong>100%</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+
+<!-- Regenerate Payroll Modal -->
+<div class="modal fade" id="regenerateModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-sync-alt"></i> Regenerate Past Payroll</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>This will delete and recalculate payroll records within the selected date range using the <strong>new contribution rates and tax brackets</strong>.</p>
+                <form id="regenerateForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label class="form-label">Start Date (date paid)</label>
+                        <input type="date" name="start_date" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">End Date (date paid)</label>
+                        <input type="date" name="end_date" class="form-control" required>
+                    </div>
+                     <div class="alert alert-info">
+    Using official Philippine 2024 SSS / PhilHealth / Pag‑IBIG contribution tables.
+</div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmRegenerateBtn">Regenerate Now</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    function updateClock() {
+        const now = new Date();
+        const clockEl = document.getElementById('liveClock');
+        const dateEl = document.getElementById('liveDate');
+        if (clockEl) clockEl.textContent = now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true });
+        if (dateEl) dateEl.textContent = now.toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    function toggleDatePicker() {
+        const form = document.getElementById('datePickerForm');
+        form.style.display = form.style.display === 'none' ? 'block' : 'none';
+    }
+
+    // CSRF helper
+    function getCsrfToken() {
+        return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    }
+
+    // Regenerate logic
+    document.getElementById('confirmRegenerateBtn')?.addEventListener('click', function() {
+        const start = document.querySelector('#regenerateForm input[name="start_date"]').value;
+        const end = document.querySelector('#regenerateForm input[name="end_date"]').value;
+        if (!start || !end) {
+            Swal.fire('Error', 'Please select both start and end dates.', 'error');
+            return;
+        }
+        Swal.fire({
+            title: 'Are you sure?',
+            text: `Payroll records from ${start} to ${end} will be deleted and regenerated.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            confirmButtonText: 'Yes, regenerate',
+            cancelButtonText: 'Cancel'
+        }).then(result => {
+            if (result.isConfirmed) {
+                fetch('/admin/payroll/regenerate_bulk', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCsrfToken()
+                    },
+                    body: JSON.stringify({ start_date: start, end_date: end })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire('Success', `${data.regenerated} payroll records regenerated.`, 'success');
+                        location.reload();
+                    } else {
+                        Swal.fire('Error', data.message || 'Regeneration failed.', 'error');
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    Swal.fire('Error', 'Server error.', 'error');
+                });
+            }
+        });
+    });
+</script>
+</body>
+</html>

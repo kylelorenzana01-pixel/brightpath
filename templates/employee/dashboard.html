@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Dashboard | BrightPath Company</title>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/shared/base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/employee/dashboard.css') }}">
+</head>
+<body>
+
+    <aside class="sidebar">
+        <div class="brand mb-5 px-2">
+            <h3 class="fw-bold text-white mb-0">BrightPath</h3>
+            <small class="text-info fw-bold" style="font-size: 0.7rem; letter-spacing: 1px;">trading co.</small>
+        </div>
+        
+        <div class="text-center mb-5 p-3 rounded-4 bg-white bg-opacity-10 border border-white border-opacity-10">
+            <img src="{{ url_for('static', filename='profile_pics/' + (profile_pic if profile_pic else 'default_profile.png')) }}" 
+                class="rounded-circle profile-img shadow-sm mb-2">
+            <h6 class="fw-bold text-white mb-1 text-truncate">{{ employee_name }}</h6>
+            <p class="text-white-50 small mb-0">Regular Employee</p>
+        </div>
+
+        <nav class="nav flex-column flex-grow-1">
+            <a id="link-dash" class="nav-link active" onclick="switchTab('emp-dash', this)"><i class="fas fa-chart-line me-3"></i> Dashboard</a>
+            <a id="link-attsummary" class="nav-link" onclick="switchTab('emp-att-summary', this)"><i class="fas fa-chart-simple me-3"></i> My Attendance</a>
+            <a id="link-payroll" class="nav-link" onclick="switchTab('emp-payroll', this)"><i class="fas fa-file-invoice-dollar me-3"></i> My Payroll</a>
+            <a id="link-leave" class="nav-link" onclick="switchTab('emp-leave', this)"><i class="fas fa-calendar-alt me-3"></i> File Leave</a>
+            <a id="link-overtime" class="nav-link" onclick="switchTab('emp-overtime', this)"><i class="fas fa-clock me-3"></i> Overtime</a>
+            <!-- New: Cash Advance & Loan Request -->
+            <a id="link-cashadvance" class="nav-link" onclick="switchTab('emp-cash-advance', this)"><i class="fas fa-hand-holding-heart me-3"></i> Cash Advance</a>
+            <a id="link-profile" class="nav-link" onclick="switchTab('emp-profile', this)"><i class="fas fa-user-cog me-3"></i> My Profile</a>
+            <a id="link-reports" class="nav-link" onclick="switchTab('emp-reports', this)"><i class="fas fa-file-alt me-3"></i> My Reports</a>
+        </nav>
+
+        <div class="mt-auto pt-4 border-top border-white border-opacity-10 text-center">
+            <a class="text-decoration-none text-warning fw-bold small" href="{{ url_for('logout', role='employee') }}"><i class="fas fa-power-off me-2"></i> LOGOUT</a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        
+        <div class="d-flex justify-content-between align-items-center mb-5">
+            <div class="animate__animated animate__fadeInLeft">
+                <h2 class="fw-bold mb-1">Welcome back, {{ employee_name.split()[0] }}!</h2>
+                <p class="text-muted mb-0">Here's what's happening with your workspace today.</p>
+            </div>
+            <div class="d-flex gap-3 align-items-center">
+                <!-- Notification Bell -->
+                <div class="notification-dropdown" style="position: relative;">
+                    <button id="notificationBell" class="btn btn-light rounded-circle position-relative" style="width: 45px; height: 45px;">
+                        <i class="fas fa-bell"></i>
+                        <span id="notifBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none;">0</span>
+                    </button>
+                    <div id="notificationMenu" class="dropdown-menu p-0 shadow-lg" style="width: 350px; right: 0; left: auto; display: none; border-radius: 16px; z-index: 1050;">
+                        <div class="p-3 border-bottom bg-light rounded-top d-flex justify-content-between align-items-center">
+                            <strong>Notifications</strong>
+                            <button id="markAllRead" class="btn btn-sm btn-link text-decoration-none">Mark all read</button>
+                        </div>
+                        <div id="notificationList" style="max-height: 400px; overflow-y: auto;">
+                            <div class="text-center p-4 text-muted">Loading...</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Live Clock -->
+                <div class="text-end bg-white p-3 px-4 rounded-4 shadow-sm border-0 animate__animated animate__fadeInRight">
+                    <h3 id="liveClock" class="fw-bold text-primary mb-0">--:--:--</h3>
+                    <small id="liveDate" class="text-uppercase text-muted fw-bold" style="font-size: 0.7rem; letter-spacing: 1.5px;">Loading date...</small>
+                </div>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+            <div class="alert alert-info alert-dismissible fade show border-0 shadow-sm rounded-4 mb-4" role="alert">
+                <i class="fas fa-bell me-2"></i> {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <!-- ========== DASHBOARD TAB ========== -->
+        <div id="emp-dash" class="section-content active">
+            <div class="row g-4 mb-5">
+                <div class="col-md-3">
+                    <div class="card p-4 border-start border-4 border-{{ status_color }}">
+                        <small class="text-muted fw-bold">DUTY STATUS</small>
+                        <h3 class="fw-bold my-2 text-{{ status_color }}">{{ clock_status }}</h3>
+                        {% if clock_status == "On Duty" %}
+                            <form action="{{ url_for('clock_out') }}" method="POST">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill fw-bold w-100 mt-2">CLOCK OUT</button>
+                            </form>
+                        {% else %}
+                            <form action="{{ url_for('clock_in') }}" method="POST">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-primary btn-sm rounded-pill fw-bold w-100 mt-2 shadow-sm">CLOCK IN</button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card p-4 bg-primary text-white">
+                        <small class="fw-bold opacity-75">LEAVE CREDITS</small>
+                        <h2 class="fw-bold my-2">{{ "{:.1f}".format(leave_credits) }}</h2>
+                        <small>Days Available</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card p-4">
+                        <small class="text-muted fw-bold text-uppercase">Monthly Attendance</small>
+                        <h2 class="fw-bold my-2 text-dark">{{ days_worked }}</h2>
+                        <small class="text-success fw-bold"><i class="fas fa-check-circle"></i> Days Present</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card p-4 bg-dark text-white shadow-lg" style="cursor: pointer;" onclick="switchTab('emp-payroll', document.getElementById('link-payroll'))">
+                        <small class="text-warning fw-bold">LAST PAYROLL</small>
+                        <h2 class="fw-bold my-2">₱{{ "{:,.2f}".format(last_net_pay) }}</h2>
+                        <small class="opacity-50 small">Click to view details</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-lg-8">
+                    <div class="table-container shadow-sm p-4 bg-white rounded-4">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h5 class="fw-bold mb-0"><i class="fas fa-history me-2 text-primary"></i>Recent Attendance</h5>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light"><tr><th>Date Logged</th><th>Time In</th><th>Time Out</th><th class="text-center">Status</th></tr></thead>
+                                <tbody>
+                                    {% if attendance_history %}
+                                        {% for log in attendance_history %}
+                                        <tr>
+                                            <td class="fw-bold">{{ log.log_date }}</td>
+                                            <td class="text-success fw-bold">{{ log.time_in if log.time_in else '--:--' }}</td>
+                                            <td class="text-danger fw-bold">{{ log.time_out if log.time_out else '--:--' }}</td>
+                                            <td class="text-center"><span class="badge rounded-pill {{ 'bg-success' if log.status == 'On Time' else 'bg-warning' }} bg-opacity-10 {{ 'text-success' if log.status == 'On Time' else 'text-warning' }} px-3 py-2">{{ log.status }}</span></td>
+                                        </tr>
+                                        {% endfor %}
+                                    {% else %}
+                                        <tr><td colspan="4" class="text-center py-5">No attendance records.</td></tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="table-container shadow-sm p-4 bg-white rounded-4">
+                        <h5 class="fw-bold mb-4"><i class="fas fa-file-invoice-dollar me-2 text-danger"></i>Quick Payslips</h5>
+                        <div class="list-group list-group-flush" id="quickPayslipsList">
+                            {% if payroll_history %}
+                                {% for pay in payroll_history[:3] %}
+                                <div class="list-group-item bg-transparent px-0 border-light d-flex justify-content-between align-items-center">
+                                    <div><p class="mb-0 fw-bold small">{{ pay.date_paid }}</p><small class="text-success fw-bold">₱{{ "{:,.2f}".format(pay.net_pay) }}</small></div>
+                                    <button class="btn btn-sm btn-light rounded-circle"><i class="fas fa-download"></i></button>
+                                </div>
+                                {% endfor %}
+                                <button class="btn btn-link btn-sm w-100 mt-2 text-decoration-none" onclick="switchTab('emp-payroll', document.getElementById('link-payroll'))">See All Records</button>
+                            {% else %}
+                                <p class="text-center text-muted py-4 small">No payroll records yet.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+         <!-- ========== MY ATTENDANCE TAB ========== -->
+<div id="emp-att-summary" class="section-content d-none">
+    <div class="table-container shadow-sm p-4 bg-white rounded-4">
+        <h5 class="fw-bold mb-4"><i class="fas fa-calendar-check me-2 text-primary"></i> Attendance Log</h5>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Date</th>
+                        <th>Time In</th>
+                        <th>Time Out</th>
+                        <th>Late (mins)</th>
+                        <th>Undertime (mins)</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if attendance_history %}
+                        {% for log in attendance_history %}
+                        <tr>
+                            <td class="fw-bold">{{ log.log_date }}</td>
+                            <td class="text-success">{{ log.time_in if log.time_in else '--:--' }}</td>
+                            <td class="text-danger">{{ log.time_out if log.time_out else '--:--' }}</td>
+                            <td>{{ log.minutes_late or 0 }}</td>
+                            <td>{{ log.undertime_minutes or 0 }}</td>
+                            <td class="text-center">
+                                {% set status = log.status %}
+                                {% if status == 'On Time' %}
+                                    <span class="badge rounded-pill bg-success bg-opacity-10 text-success px-3 py-2">On Time</span>
+                                {% elif status == 'Late' %}
+                                    <span class="badge rounded-pill bg-warning bg-opacity-10 text-warning px-3 py-2">Late</span>
+                                {% elif status == 'Undertime' %}
+                                    <span class="badge rounded-pill bg-info bg-opacity-10 text-info px-3 py-2">Undertime</span>
+                                {% elif status == 'Absent' %}
+                                    <span class="badge rounded-pill bg-danger bg-opacity-10 text-danger px-3 py-2">Absent</span>
+                                {% else %}
+                                    <span class="badge rounded-pill bg-secondary bg-opacity-10 text-muted px-3 py-2">{{ status }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr><td colspan="6" class="text-center py-5">No attendance records. Please clock in.</td></tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="table-container shadow-sm p-4 bg-white rounded-4 mt-4">
+        <h5 class="fw-bold mb-4"><i class="fas fa-chart-line me-2 text-primary"></i> Weekly Summary</h5>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Week</th>
+                        <th>Days Present</th>
+                        <th>Total Hours</th>
+                        <th>Late (mins)</th>
+                        <th>Undertime (mins)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if weekly_summary %}
+                        {% for week in weekly_summary %}
+                        <tr>
+                            <td class="fw-bold">{{ week.week_range }}</td>
+                            <td>{{ week.days_present }}</td>
+                            <td>{{ week.total_hours }}</td>
+                            <td>{{ week.total_late }}</td>
+                            <td>{{ week.total_undertime }}</td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr><td colspan="5">No weekly data available.</td></tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+        <!-- ========== MY PAYROLL TAB (DETAILED) ========== -->
+        <div id="emp-payroll" class="section-content d-none">
+            <div class="table-container shadow-sm p-4 bg-white rounded-4 animate__animated animate__fadeIn">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h4 class="fw-bold mb-0"><i class="fas fa-coins me-2 text-primary"></i> Payroll History</h4>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Cutoff Period</th>
+                                <th>Gross Pay</th>
+                                <th>Total Deductions</th>
+                                <th>Net Pay</th>
+                                <th>Date Paid</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if payroll_history %}
+                                {% for pay in payroll_history %}
+                                <tr>
+                                    <td class="fw-bold">{{ pay.cutoff_period }}</td>
+                                    <td class="text-success fw-bold">₱{{ "{:,.2f}".format(pay.gross_pay) }}</td>
+                                    <td class="text-danger">- ₱{{ "{:,.2f}".format((pay.gross_pay|float) - (pay.net_pay|float)) }}</td>
+                                    <td class="fw-bold text-primary">₱{{ "{:,.2f}".format(pay.net_pay) }}</td>
+                                    <td class="text-muted">{{ pay.date_paid }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-info rounded-pill" data-bs-toggle="modal" data-bs-target="#payrollDetailModal"
+                                            data-basic="{{ pay.basic_pay }}"
+                                            data-overtime="{{ pay.overtime_pay }}"
+                                            data-holiday="{{ pay.holiday_pay }}"
+                                            data-tardiness="{{ pay.tardiness_deduction }}"
+                                            data-undertime="{{ pay.undertime_deduction }}"
+                                            data-sss="{{ pay.sss }}"
+                                            data-philhealth="{{ pay.philhealth }}"
+                                            data-pagibig="{{ pay.pagibig }}"
+                                            data-withholding="{{ pay.withholding_tax }}"
+                                            data-cashadvance="{{ pay.cash_advance_deduction }}"
+                                            data-gross="{{ pay.gross_pay }}"
+                                            data-net="{{ pay.net_pay }}"
+                                            data-period="{{ pay.cutoff_period }}">
+                                            <i class="fas fa-receipt"></i> Details
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="6" class="text-center py-5 text-muted">No payroll records found.</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal for Payroll Details -->
+        <div class="modal fade" id="payrollDetailModal" tabindex="-1" aria-labelledby="payrollDetailModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content rounded-4">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title" id="payrollDetailModalLabel">Payroll Details</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <h6 class="fw-bold mb-3" id="modalPeriod"></h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="border-bottom pb-2 mb-3">Earnings</h6>
+                                <table class="table table-sm">
+                                    <tr><td>Basic Pay</td><td class="text-end" id="modalBasic">₱0.00</td></tr>
+                                    <tr><td>Overtime Pay</td><td class="text-end" id="modalOvertime">₱0.00</td></tr>
+                                    <tr><td>Holiday Pay</td><td class="text-end" id="modalHoliday">₱0.00</td></tr>
+                                    <tr class="fw-bold"><td>Gross Pay</td><td class="text-end" id="modalGross">₱0.00</td></tr>
+                                </table>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="border-bottom pb-2 mb-3">Deductions</h6>
+                                <table class="table table-sm">
+                                    <tr><td>Tardiness</td><td class="text-end text-danger" id="modalTardiness">- ₱0.00</td></tr>
+                                    <tr><td>Undertime</td><td class="text-end text-danger" id="modalUndertime">- ₱0.00</td></tr>
+                                    <tr><td>SSS</td><td class="text-end text-danger" id="modalSSS">- ₱0.00</td></tr>
+                                    <tr><td>PhilHealth</td><td class="text-end text-danger" id="modalPhilhealth">- ₱0.00</td></tr>
+                                    <tr><td>Pag-IBIG</td><td class="text-end text-danger" id="modalPagibig">- ₱0.00</td></tr>
+                                    <tr><td>Withholding Tax</td><td class="text-end text-danger" id="modalWithholding">- ₱0.00</td></tr>
+                                    <tr><td>Cash Advance</td><td class="text-end text-danger fw-bold" id="modalCashAdvance">- ₱0.00</td></tr>
+                                    <tr class="fw-bold"><td>Total Deductions</td><td class="text-end text-danger" id="modalTotalDeductions">- ₱0.00</td></tr>
+                                    <tr class="table-success fw-bold"><td>Net Pay</td><td class="text-end" id="modalNet">₱0.00</td></tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== FILE LEAVE TAB ========== -->
+        <div id="emp-leave" class="section-content d-none">
+            <div class="row justify-content-center">
+                <div class="col-md-7">
+                    <div class="card p-5 border-0 shadow-lg animate__animated animate__fadeInUp">
+                        <div class="text-center mb-4"><h3 class="fw-bold">File a Leave</h3><p class="text-muted">Ensure you have sufficient credits before applying.</p></div>
+                        <form action="{{ url_for('file_leave') }}" method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="mb-3"><label class="form-label fw-bold small text-uppercase">Leave Type</label><select name="leave_type" class="form-select border-0 bg-light p-3 rounded-4"><option value="Vacation">Vacation Leave</option><option value="Sick">Sick Leave</option><option value="Emergency">Emergency Leave</option></select></div>
+                            <div class="row g-3 mb-3"><div class="col-md-6"><label class="form-label fw-bold small text-uppercase">Start Date</label><input type="date" name="start_date" class="form-control border-0 bg-light p-3 rounded-4"></div><div class="col-md-6"><label class="form-label fw-bold small text-uppercase">End Date</label><input type="date" name="end_date" class="form-control border-0 bg-light p-3 rounded-4"></div></div>
+                            <div class="mb-4"><label class="form-label fw-bold small text-uppercase">Reason</label><textarea name="reason" class="form-control border-0 bg-light p-3 rounded-4" rows="3"></textarea></div>
+                            <button type="submit" class="btn btn-primary w-100 p-3 fw-bold rounded-pill shadow">SUBMIT APPLICATION</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="table-container shadow-sm p-4 bg-white rounded-4">
+                        <h5 class="fw-bold mb-4"><i class="fas fa-list-alt me-2 text-primary"></i> My Leave Requests</h5>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light"><tr><th>Leave Type</th><th>Start Date</th><th>End Date</th><th>Status</th><th>Reason</th></tr></thead>
+                                <tbody>
+                                    {% if leave_requests %}
+                                        {% for req in leave_requests %}
+                                        <tr><td class="fw-bold">{{ req.leave_type }}</td><td>{{ req.start_date }}</td><td>{{ req.end_date }}</td><td>{% if req.status == 'Pending' %}<span class="badge bg-warning text-dark">Pending</span>{% elif req.status == 'Approved' %}<span class="badge bg-success">Approved</span>{% elif req.status == 'Rejected' %}<span class="badge bg-danger">Rejected</span>{% else %}<span class="badge bg-secondary">{{ req.status }}</span>{% endif %}</td><td>{{ req.reason[:50] }}{% if req.reason|length > 50 %}...{% endif %}</td></tr>
+                                        {% endfor %}
+                                    {% else %}
+                                        <tr><td colspan="5" class="text-center py-4 text-muted">No leave requests found.</td></tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== OVERTIME TAB ========== -->
+        <div id="emp-overtime" class="section-content d-none">
+            <div class="row justify-content-center">
+                <div class="col-md-7">
+                    <div class="card p-5 border-0 shadow-lg animate__animated animate__fadeInUp">
+                        <div class="text-center mb-4"><h3 class="fw-bold">Request Overtime</h3><p class="text-muted">Submit your overtime request for approval.</p></div>
+                        <form action="{{ url_for('employee_request_overtime') }}" method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="mb-3"><label class="form-label fw-bold small text-uppercase">Date</label><input type="date" name="overtime_date" class="form-control border-0 bg-light p-3 rounded-4" required></div>
+                            <div class="mb-3"><label class="form-label fw-bold small text-uppercase">Hours</label><input type="number" step="0.5" name="overtime_hours" class="form-control border-0 bg-light p-3 rounded-4" required></div>
+                            <div class="mb-4"><label class="form-label fw-bold small text-uppercase">Reason</label><textarea name="overtime_reason" class="form-control border-0 bg-light p-3 rounded-4" rows="3" required></textarea></div>
+                            <button type="submit" class="btn btn-primary w-100 p-3 fw-bold rounded-pill shadow">Submit Request</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="table-container shadow-sm p-4 bg-white rounded-4">
+                        <h5 class="fw-bold mb-4"><i class="fas fa-history me-2 text-primary"></i> My Overtime Requests</h5>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light"><tr><th>Date</th><th>Hours</th><th>Reason</th><th>Status</th></tr></thead>
+                                <tbody>
+                                    {% if overtime_requests %}
+                                        {% for ot in overtime_requests %}
+                                        <tr><td class="fw-bold">{{ ot.overtime_date }}</td><td>{{ ot.hours }}</td><td>{{ ot.reason[:50] }}{% if ot.reason|length > 50 %}...{% endif %}</td><td>{% if ot.status == 'Pending' %}<span class="badge bg-warning text-dark">Pending</span>{% elif ot.status == 'Approved' %}<span class="badge bg-success">Approved</span>{% elif ot.status == 'Rejected' %}<span class="badge bg-danger">Rejected</span>{% else %}<span class="badge bg-secondary">{{ ot.status }}</span>{% endif %}</td></tr>
+                                        {% endfor %}
+                                    {% else %}
+                                        <tr><td colspan="4" class="text-center py-4 text-muted">No overtime requests found.</td></tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== CASH ADVANCE TAB ========== -->
+        <div id="emp-cash-advance" class="section-content d-none">
+            <div class="row justify-content-center">
+                <div class="col-md-7">
+                    <div class="card p-5 border-0 shadow-lg animate__animated animate__fadeInUp">
+                        <div class="text-center mb-4"><h3 class="fw-bold">Request Cash Advance</h3><p class="text-muted">Request salary advance. Repayment can be one‑time or monthly.</p></div>
+                        <form action="{{ url_for('employee_request_cash_advance') }}" method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="mb-3"><label class="form-label">Amount (₱)</label><input type="number" step="0.01" name="amount" class="form-control border-0 bg-light p-3 rounded-4" required></div>
+                            <div class="mb-3"><label class="form-label">Repayment Months (0 = one‑time)</label><input type="number" name="repayment_months" class="form-control border-0 bg-light p-3 rounded-4" value="0"></div>
+                            <button type="submit" class="btn btn-primary w-100 p-3 fw-bold rounded-pill shadow">Submit Request</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="table-container shadow-sm p-4 bg-white rounded-4">
+                        <h5 class="fw-bold mb-4"><i class="fas fa-history me-2 text-primary"></i> My Cash Advances</h5>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light"><tr><th>Date</th><th>Amount</th><th>Repayment Months</th><th>Remaining Balance</th><th>Status</th></tr></thead>
+                                <tbody>
+                                    {% if cash_advances %}
+                                        {% for ca in cash_advances %}
+                                        <tr><td>{{ ca.created_at.strftime('%Y-%m-%d') if ca.created_at else '' }}</td><td class="text-success">₱{{ "{:,.2f}".format(ca.amount) }}</td><td>{{ ca.repayment_months }}</td><td>₱{{ "{:,.2f}".format(ca.remaining_balance) }}</td><td>{% if ca.status == 'pending' %}<span class="badge bg-warning text-dark">Pending</span>{% elif ca.status == 'approved' %}<span class="badge bg-success">Approved</span>{% else %}<span class="badge bg-secondary">{{ ca.status }}</span>{% endif %}</td></tr>
+                                        {% endfor %}
+                                    {% else %}
+                                        <tr><td colspan="5">No cash advance requests.</td></tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== MY REPORTS TAB ========== -->
+        <div id="emp-reports" class="section-content d-none">
+            <div class="table-container shadow-sm p-4 bg-white rounded-4">
+                <h5 class="fw-bold mb-4"><i class="fas fa-file-alt me-2 text-primary"></i> Generated Reports</h5>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light"><tr><th>Report Title</th><th>Date Generated</th><th>Action</th></tr></thead>
+                        <tbody id="reportsTableBody"><tr><td colspan="3" class="text-center">Loading...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== MY PROFILE TAB ========== -->
+        <div id="emp-profile" class="section-content d-none">
+            <div class="card border-0 shadow-sm p-4 p-md-5" style="border-radius: 25px;">
+                <h4 class="fw-bold mb-4"><i class="fas fa-user-edit me-2 text-primary"></i> My Profile</h4>
+                <form action="{{ url_for('employee_profile_update') }}" method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="row">
+                        <div class="col-lg-4 text-center border-end mb-4 mb-lg-0">
+                            <img src="{{ url_for('static', filename='profile_pics/' + (profile_pic if profile_pic else 'default_profile.png')) }}" class="rounded-circle shadow-sm mb-3" style="width: 160px; height: 160px; object-fit: cover; border: 5px solid #f8f9fc;">
+                            <div class="mt-2"><label class="form-label small fw-bold text-muted">Update Profile Photo</label><input type="file" name="profile_pic" class="form-control form-control-sm bg-light border-0 rounded-3"><p class="text-muted mt-2 small">Allowed: JPG, PNG, GIF</p></div>
+                        </div>
+                        <div class="col-lg-8 ps-lg-5">
+                            <div class="row g-4">
+                                <div class="col-md-6"><label class="form-label small fw-bold text-muted">Full Name</label><input type="text" class="form-control bg-light" value="{{ employee_name }}" readonly></div>
+                                <div class="col-md-6"><label class="form-label small fw-bold text-muted">Email Address</label><input type="email" class="form-control bg-light" value="{{ user_email }}" readonly></div>
+                                <div class="col-md-6"><label class="form-label small fw-bold">Position</label><select name="position" class="form-select">{% for p in ['Staff','Sales and Marketing Staff','Operations and Delivery Staff','HR Officer','Finance Officer','Admin Staff','General Manager','Delivery Driver','Warehouse Staff'] %}<option value="{{ p }}" {% if user_position == p %}selected{% endif %}>{{ p }}</option>{% endfor %}</select></div>
+                                <div class="col-md-6"><label class="form-label small fw-bold">Contact Number</label><input type="text" name="contact_number" class="form-control" value="{{ user_contact or '' }}" placeholder="e.g., 09123456789"></div>
+                                <div class="col-12"><label class="form-label small fw-bold">Home Address</label><textarea name="address" class="form-control" rows="3" placeholder="Enter your full address">{{ user_address or '' }}</textarea></div>
+                            </div>
+                            <div class="mt-5 d-flex gap-3"><button type="submit" class="btn btn-primary px-4 py-2 fw-bold rounded-pill shadow-sm"><i class="fas fa-save me-2"></i> Save Profile Changes</button></div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="card border-0 shadow-sm p-4 p-md-5 mt-4" style="border-radius: 25px;">
+                <h4 class="fw-bold mb-3"><i class="fas fa-key me-2 text-warning"></i> Change Password</h4>
+                <form action="{{ url_for('employee_change_password') }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="row g-3"><div class="col-md-4"><label class="form-label">Old Password</label><input type="password" name="old_password" class="form-control" required></div><div class="col-md-4"><label class="form-label">New Password</label><input type="password" name="new_password" class="form-control" required></div><div class="col-md-4"><label class="form-label">Confirm New Password</label><input type="password" name="confirm_password" class="form-control" required></div><div class="col-12 mt-3"><button type="submit" class="btn btn-warning fw-bold rounded-pill px-4"><i class="fas fa-save me-2"></i> Change Password</button></div></div>
+                </form>
+            </div>
+        </div>
+
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+    <script>
+        // Populate modal with data from button attributes
+        document.addEventListener('DOMContentLoaded', function() {
+            const modal = document.getElementById('payrollDetailModal');
+            if (modal) {
+                modal.addEventListener('show.bs.modal', function(event) {
+                    const button = event.relatedTarget;
+                    // Get values
+                    const basic = parseFloat(button.getAttribute('data-basic')) || 0;
+                    const overtime = parseFloat(button.getAttribute('data-overtime')) || 0;
+                    const holiday = parseFloat(button.getAttribute('data-holiday')) || 0;
+                    const tardiness = parseFloat(button.getAttribute('data-tardiness')) || 0;
+                    const undertime = parseFloat(button.getAttribute('data-undertime')) || 0;
+                    const sss = parseFloat(button.getAttribute('data-sss')) || 0;
+                    const philhealth = parseFloat(button.getAttribute('data-philhealth')) || 0;
+                    const pagibig = parseFloat(button.getAttribute('data-pagibig')) || 0;
+                    const withholding = parseFloat(button.getAttribute('data-withholding')) || 0;
+                    const cashAdvance = parseFloat(button.getAttribute('data-cashadvance')) || 0;
+                    const gross = parseFloat(button.getAttribute('data-gross')) || 0;
+                    const net = parseFloat(button.getAttribute('data-net')) || 0;
+                    const period = button.getAttribute('data-period') || '';
+
+                    document.getElementById('modalPeriod').innerText = period;
+                    document.getElementById('modalBasic').innerHTML = `₱${basic.toFixed(2)}`;
+                    document.getElementById('modalOvertime').innerHTML = `₱${overtime.toFixed(2)}`;
+                    document.getElementById('modalHoliday').innerHTML = `₱${holiday.toFixed(2)}`;
+                    document.getElementById('modalGross').innerHTML = `₱${gross.toFixed(2)}`;
+                    document.getElementById('modalTardiness').innerHTML = `- ₱${tardiness.toFixed(2)}`;
+                    document.getElementById('modalUndertime').innerHTML = `- ₱${undertime.toFixed(2)}`;
+                    document.getElementById('modalSSS').innerHTML = `- ₱${sss.toFixed(2)}`;
+                    document.getElementById('modalPhilhealth').innerHTML = `- ₱${philhealth.toFixed(2)}`;
+                    document.getElementById('modalPagibig').innerHTML = `- ₱${pagibig.toFixed(2)}`;
+                    document.getElementById('modalWithholding').innerHTML = `- ₱${withholding.toFixed(2)}`;
+                    document.getElementById('modalCashAdvance').innerHTML = `- ₱${cashAdvance.toFixed(2)}`;
+                    const totalDed = tardiness + undertime + sss + philhealth + pagibig + withholding + cashAdvance;
+                    document.getElementById('modalTotalDeductions').innerHTML = `- ₱${totalDed.toFixed(2)}`;
+                    document.getElementById('modalNet').innerHTML = `₱${net.toFixed(2)}`;
+                });
+            }
+        });
+    </script>
+</body>
+</html>

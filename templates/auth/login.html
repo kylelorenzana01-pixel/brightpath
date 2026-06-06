@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Login | BrightPath</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/shared/base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/employee/auth.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+</head>
+<body>
+
+    <div id="cameraModal">
+        <div class="scanner-container">
+            <h3>Face Recognition Authentication</h3>
+            <p id="scanStatus">Initializing camera<span class="scanning-dots"></span></p>
+            <div class="scan-frame">
+                <div class="scan-line"></div>
+                <img id="faceFeed" src="" width="100%" height="100%" style="object-fit: cover;">
+            </div>
+            <button onclick="closeScanner()" style="background: #95a5a6; color: white; border: none; padding: 10px 25px; border-radius: 5px; cursor: pointer;">Cancel</button>
+        </div>
+    </div>
+
+    <div class="split-container">
+        <div class="left-side">
+            <img src="{{ url_for('static', filename='img/logo.png') }}" style="max-width: 250px;">
+            <h1>BrightPath Trading Co.</h1>
+            <p>Human Evolution & Resource Operations</p>
+            <p style="font-size: 0.8rem; margin-top: 20px; opacity: 0.7;">Employee Portal</p>
+        </div>
+
+        <div class="right-side">
+            <div class="selection-box">
+                {% with messages = get_flashed_messages() %}
+                    {% if messages %}{% for message in messages %}
+                        <div class="flash-msg">{{ message }}</div>
+                    {% endfor %}{% endif %}
+                {% endwith %}
+
+                <div class="auth-card employee-card">
+                    <i class="fas fa-users" style="color: #007bff; font-size: 2rem;"></i>
+                    <h2>Employee Login</h2>
+                    <p style="color: #666; font-size: 0.8rem;">Access your work dashboard</p>
+                    
+                    <form action="/login_manual_action" method="POST" class="auth-form">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="email" name="email" placeholder="Email Address" required>
+                        <input type="password" name="password" placeholder="Password" required>
+                        <button type="submit" class="btn-primary">LOGIN</button>
+                    </form>
+
+                    <p style="margin: 15px 0; font-size: 0.8rem; color: #666666;">— OR —</p>
+                    
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <button class="btn-face" data-video-url="{{ url_for('video_feed') }}">
+                            <i class="fas fa-camera"></i> Face Recognition Login
+                        </button>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 5px;">
+                            <a href="{{ url_for('employee_signup') }}" style="text-decoration: none; color: #48688b; font-size: 0.85rem; text-align: center;">
+                                <i class="fas fa-camera"></i> Register with Face Capture
+                            </a>
+                            <a href="{{ url_for('employee_manual_signup_page') }}" style="text-decoration: none; color: #10b981; font-size: 0.85rem; text-align: center;">
+                                <i class="fas fa-user-edit"></i> Manual Registration (No Camera)
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <p style="text-align: center; font-size: 0.7rem; color: #999; margin-top: 20px;">
+                    <i class="fas fa-shield-alt"></i> Authorized personnel only
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/login.js') }}" defer></script>
+</body>
+</html>

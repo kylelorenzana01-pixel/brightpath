@@ -1,0 +1,241 @@
+/* =====================================================
+   BRIGHTPATH PAYSLIP & TIMESHEET REPORT - PRINT STYLES
+   ===================================================== */
+
+/* Base styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', 'Inter', system-ui, -apple-system, sans-serif;
+    background: #e2e8f0;
+    padding: 2rem;
+}
+
+/* Main report container – simulates a page */
+.report-container {
+    max-width: 1280px;
+    margin: 0 auto;
+    background: white;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.1);
+    padding: 1.8rem;
+    border-radius: 4px;
+}
+
+/* ========== PRINT OPTIMISATION (Landscape A4/Letter) ========== */
+@media print {
+    body {
+        background: white;
+        padding: 0;
+        margin: 0;
+    }
+    .report-container {
+        box-shadow: none;
+        padding: 0.5cm;
+        max-width: 100%;
+    }
+    .no-print {
+        display: none !important;
+    }
+    @page {
+        size: landscape;
+        margin: 1.2cm;
+    }
+    .income-box, .deduction-box, .benefits-box, .additionals-box, .summary-box {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+    .timesheet-table table {
+        font-size: 11pt;
+        line-height: 1.2;
+    }
+    .timesheet-table th, .timesheet-table td {
+        padding: 4px 6px;
+    }
+    .signature-line {
+        margin-top: 0.3cm;
+    }
+}
+
+/* Header */
+.report-header {
+    border-bottom: 2px solid #1e3a8a;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+}
+.date-range {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #075985;
+    margin-bottom: 0.7rem;
+}
+.employee-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.2rem;
+    background: #f8fafc;
+    padding: 0.8rem 1rem;
+    border-radius: 12px;
+    font-size: 0.9rem;
+}
+.emp-item {
+    flex: 1 1 200px;
+}
+.emp-item strong {
+    font-weight: 700;
+    color: #0f172a;
+}
+.emp-label {
+    color: #475569;
+    margin-right: 6px;
+}
+
+/* Grid Main Layout (left 65%, right 32% with gap) */
+.report-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+    margin-top: 1rem;
+}
+.left-panel {
+    flex: 2;  /* ~65% */
+    min-width: 280px;
+}
+.right-panel {
+    flex: 1;  /* ~35% */
+    min-width: 260px;
+}
+
+/* Bordered boxes */
+.income-box, .deduction-box, .benefits-box, .additionals-box, .summary-box {
+    border: 1px solid #cbd5e1;
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    background: #ffffff;
+}
+.box-title {
+    font-weight: 700;
+    font-size: 1rem;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.8rem;
+    color: #1e3a8a;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Income Box inner */
+.income-details {
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px dashed #cbd5e1;
+    padding: 6px 0;
+}
+.income-gross {
+    margin-top: 10px;
+    font-weight: 800;
+    font-size: 1.1rem;
+    text-align: right;
+    border-top: 2px solid #334155;
+    padding-top: 8px;
+}
+
+/* Tables inside boxes (deductions, additionals) */
+.deduction-table, .additionals-table, .benefits-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.deduction-table td, .additionals-table td {
+    padding: 6px 0;
+    border-bottom: 1px solid #eef2f6;
+}
+.deduction-table td:last-child, .additionals-table td:last-child {
+    text-align: right;
+    font-weight: 500;
+}
+.total-row {
+    font-weight: 800;
+    border-top: 2px solid #94a3b8;
+}
+.total-row td {
+    padding-top: 8px;
+    font-size: 1rem;
+}
+
+/* Timesheet table (scrollable horizontally if needed) */
+.timesheet-table {
+    overflow-x: auto;
+    margin-top: 1rem;
+}
+.timesheet-table table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+}
+.timesheet-table th {
+    background: #f1f5f9;
+    padding: 8px 6px;
+    border: 1px solid #cbd5e1;
+    text-align: center;
+    font-weight: 700;
+}
+.timesheet-table td {
+    border: 1px solid #e2e8f0;
+    padding: 6px 4px;
+    text-align: center;
+}
+
+/* Summary Box (Net Pay + Signature) */
+.summary-box {
+    text-align: center;
+}
+.netpay-amount {
+    font-size: 1.7rem;
+    font-weight: 800;
+    color: #065f46;
+    background: #eef2ff;
+    padding: 0.3rem;
+    border-radius: 12px;
+    margin: 10px 0;
+}
+.signature-line {
+    margin-top: 1.2rem;
+    border-top: 1px solid #94a3b8;
+    padding-top: 0.5rem;
+    font-size: 0.75rem;
+    text-align: left;
+    display: flex;
+    justify-content: space-between;
+}
+
+/* Print button */
+button {
+    background: #2563eb;
+    color: white;
+    border: none;
+    padding: 10px 22px;
+    border-radius: 40px;
+    font-weight: 600;
+    margin-bottom: 1.2rem;
+    cursor: pointer;
+    float: right;
+}
+button:hover {
+    background: #1d4ed8;
+}
+.clearfix::after {
+    content: "";
+    clear: both;
+    display: table;
+}
+
+footer {
+    margin-top: 1rem;
+    text-align: center;
+    font-size: 0.7rem;
+    color: #64748b;
+}

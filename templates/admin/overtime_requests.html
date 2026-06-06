@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Overtime Requests | BrightPath Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin/dashboard.css') }}">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+</head>
+<body>
+
+<aside class="admin-sidebar">
+    <div class="sidebar-brand">
+        <h3>BrightPath</h3>
+        <small>ADMIN PANEL</small>
+    </div>
+    <nav class="nav flex-column">
+        <a class="nav-link" href="{{ url_for('admin_dashboard') }}"><i class="fas fa-chart-line"></i> Dashboard</a>
+        <a class="nav-link" href="{{ url_for('admin_employees_page') }}"><i class="fas fa-users"></i> Employees</a>
+        <a class="nav-link" href="{{ url_for('admin_payroll_page') }}"><i class="fas fa-money-check-alt"></i> Payroll</a>
+        <a class="nav-link" href="{{ url_for('admin_payroll_list') }}"><i class="fas fa-list-ul"></i> Payroll List</a>
+        <a class="nav-link" href="{{ url_for('admin_deductions_combined') }}"><i class="fas fa-calculator"></i> Deductions</a>
+        <a class="nav-link" href="{{ url_for('admin_leaves_page') }}"><i class="fas fa-calendar-alt"></i> Leaves</a>
+        <a class="nav-link active" href="{{ url_for('admin_overtime_requests') }}"><i class="fas fa-clock"></i> Overtime</a>
+        <a class="nav-link" href="{{ url_for('admin_attendance_list') }}"><i class="fas fa-calendar-check"></i> Attendance</a>
+        <a class="nav-link" href="{{ url_for('admin_reports_page') }}"><i class="fas fa-file-alt"></i> Reports</a>
+        <a class="nav-link" href="{{ url_for('admin_generated_reports_page') }}"><i class="fas fa-folder-open"></i> Generated Reports</a>
+        <a class="nav-link {{ 'active' if request.endpoint == 'admin_holidays' else '' }}" href="{{ url_for('admin_holidays') }}"><i class="fas fa-calendar-day"></i> Holiday Management</a>
+        <a class="nav-link {{ 'active' if request.endpoint == 'admin_audit_logs' else '' }}" href="{{ url_for('admin_audit_logs') }}"><i class="fas fa-history"></i> Audit Logs</a>
+        <a class="nav-link {{ 'active' if request.endpoint == 'admin_backup_restore_page' else '' }}" href="{{ url_for('admin_backup_restore_page') }}"><i class="fas fa-database"></i> Backup & Restore</a>
+    </nav>
+    <div class="logout-btn"><a href="{{ url_for('logout', role='admin') }}" class="nav-link"><i class="fas fa-sign-out-alt"></i> Logout</a></div>
+</aside>
+
+<main class="admin-main">
+    <div class="admin-header">
+        <div class="header-title"><h1>Overtime Requests</h1><p>Approve or reject employee overtime requests</p></div>
+        <div class="header-clock"><h3 id="liveClock">--:--:--</h3><small id="liveDate">Loading date...</small></div>
+    </div>
+
+    <div class="admin-card">
+        <div class="card-header"><h3><i class="fas fa-clock"></i> Pending Overtime Requests</h3></div>
+        <div class="admin-table-container">
+            <table class="admin-table">
+                <thead><tr><th>Employee</th><th>Date</th><th>Hours</th><th>Reason</th><th>Submitted</th><th>Action</th></tr></thead>
+                <tbody>
+                    {% for req in requests %}
+                    <tr>
+                        <td>{{ req.name }} ({{ req.position }})</td>
+                        <td>{{ req.overtime_date }}</td>
+                        <td>{{ req.hours }}</td>
+                        <td>{{ req.reason[:60] }}{% if req.reason|length > 60 %}...{% endif %}</td>
+                        <td>{{ req.created_at.strftime('%Y-%m-%d %H:%M') if req.created_at else '' }}</td>
+                        <td class="action-buttons">
+                            <button class="btn-icon btn-success approve-overtime" data-id="{{ req.id }}">Approve</button>
+                            <button class="btn-icon btn-danger reject-overtime" data-id="{{ req.id }}">Reject</button>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="6">No pending overtime requests.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    function updateClock() {
+        const n = new Date();
+        const e = document.getElementById('liveClock'),
+            t = document.getElementById('liveDate');
+        e && (e.textContent = n.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }));
+        t && (t.textContent = n.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }));
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // Helper to get CSRF token
+    function getCsrfToken() {
+        return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    }
+
+    // Approve button
+    document.querySelectorAll('.approve-overtime').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const id = this.dataset.id;
+            Swal.fire({
+                title: 'Approve Overtime?',
+                text: 'Confirm approval',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#10b981',
+                confirmButtonText: 'Yes, approve'
+            }).then(result => {
+                if (result.isConfirmed) {
+                    fetch(`/admin/overtime/approve/${id}`, {
+                        method: 'POST',
+                        headers: { 'X-CSRFToken': getCsrfToken() }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) Swal.fire('Approved', '', 'success').then(() => location.reload());
+                        else Swal.fire('Error', data.message, 'error');
+                    });
+                }
+            });
+        });
+    });
+
+    // Reject button
+    document.querySelectorAll('.reject-overtime').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const id = this.dataset.id;
+            Swal.fire({
+                title: 'Reject Overtime?',
+                text: 'Confirm rejection',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                confirmButtonText: 'Yes, reject'
+            }).then(result => {
+                if (result.isConfirmed) {
+                    fetch(`/admin/overtime/reject/${id}`, {
+                        method: 'POST',
+                        headers: { 'X-CSRFToken': getCsrfToken() }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) Swal.fire('Rejected', '', 'error').then(() => location.reload());
+                        else Swal.fire('Error', data.message, 'error');
+                    });
+                }
+            });
+        });
+    });
+</script>
+</body>
+</html>

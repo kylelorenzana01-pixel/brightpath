@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>13th Month Pay Report | BrightPath</title>
+    <style>
+        @media print {
+            .no-print { display: none; }
+            body { margin: 0; padding: 0; }
+        }
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: white;
+        }
+        .letterhead {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #2c3e50;
+            padding-bottom: 20px;
+        }
+        .company-name {
+            font-size: 28px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .company-address {
+            font-size: 12px;
+            color: #555;
+        }
+        .report-title {
+            font-size: 20px;
+            margin: 20px 0;
+            text-align: center;
+            font-weight: bold;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: 600;
+        }
+        .total-row {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            font-size: 10px;
+            color: #777;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+        }
+        .print-btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 30px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        .print-btn:hover {
+            background: #1d4ed8;
+        }
+        .back-btn {
+            background: #6c757d;
+            color: white;
+            text-decoration: none;
+            padding: 8px 20px;
+            border-radius: 30px;
+            margin-left: 10px;
+            display: inline-block;
+        }
+        .back-btn:hover {
+            background: #5a6268;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print" style="margin-bottom: 20px;">
+        <button class="print-btn" onclick="window.print()"><i class="fas fa-print"></i> Print / Save as PDF</button>
+        <a href="{{ url_for('admin_reports_dashboard') }}" class="back-btn"><i class="fas fa-arrow-left"></i> Back to Reports</a>
+    </div>
+
+    <div class="letterhead">
+        <div class="company-name">BrightPath Trading Co.</div>
+        <div class="company-address">123 Main Street, San Carlos City, Pangasinan, Philippines<br>Tel: (075) 123-4567 | Email: hr@brightpath.com</div>
+    </div>
+
+    <div class="report-title">
+        13TH MONTH PAY COMPUTATION<br>
+        <small style="font-size: 14px; color: #555;">For the year {{ year }}</small>
+    </div>
+
+    <p><strong>Computation basis:</strong> Total basic salary earned from January to December ÷ 12 months.</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Employee ID</th>
+                <th>Employee Name</th>
+                <th>Position</th>
+                <th>Total Basic Pay (YTD)</th>
+                <th>13th Month Pay</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for emp in employees %}
+            <tr>
+                <td>#{{ emp.id }}</td>
+                <td>{{ emp.name }}</td>
+                <td>{{ emp.position or 'Staff' }}</td>
+                <td class="text-success">₱{{ "{:,.2f}".format(emp.total_basic) }}</td>
+                <td class="fw-bold">₱{{ "{:,.2f}".format(emp.thirteenth_month) }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5" class="text-center">No payroll records found for {{ year }}.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        {% if employees %}
+        <tfoot>
+            <tr class="total-row">
+                <td colspan="3"><strong>TOTAL</strong></td>
+                <td><strong>₱{{ "{:,.2f}".format(employees|sum(attribute='total_basic')) }}</strong></td>
+                <td><strong>₱{{ "{:,.2f}".format(employees|sum(attribute='thirteenth_month')) }}</strong></td>
+            </tr>
+        </tfoot>
+        {% endif %}
+    </table>
+
+    <div class="footer">
+        This is a system-generated report. 13th month pay is computed based on actual basic salary earned during the year.<br>
+        For verification, please contact the HR Department.
+    </div>
+</body>
+</html>

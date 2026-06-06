@@ -1,0 +1,49 @@
+{% extends "admin/dashboard.html" %}
+
+{% block content %}
+<div class="admin-card">
+    <div class="card-header"><h3><i class="fas fa-database"></i> Backup & Restore</h3></div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card border-success mb-3">
+                    <div class="card-header bg-success text-white">Backup Database</div>
+                    <div class="card-body">
+                        <p>Download a complete SQL backup of all tables (users, attendance, payroll, etc.).</p>
+                        <a href="{{ url_for('admin_backup_download') }}" class="btn btn-success"><i class="fas fa-download"></i> Download SQL Backup</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card border-warning mb-3">
+                    <div class="card-header bg-warning text-dark">Restore Database</div>
+                    <div class="card-body">
+                        <p>Upload a previously saved SQL backup file to restore the database. <strong>This will overwrite all current data!</strong></p>
+                        <form id="restoreForm" method="POST" enctype="multipart/form-data" action="{{ url_for('admin_backup_restore') }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="mb-3"><input type="file" name="backup_file" accept=".sql" class="form-control" required></div>
+                            <button type="submit" class="btn btn-warning" id="restoreBtn"><i class="fas fa-upload"></i> Restore from Backup</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="alert alert-info mt-3"><i class="fas fa-info-circle"></i> <strong>Note:</strong> The backup includes all tables. The restore operation will erase all existing data and replace it with the backup. Make sure you have a current backup before restoring.</div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('restoreForm')?.addEventListener('submit', function(e) {
+        e.preventDefault();
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "This will overwrite all current data. You will be logged out after restoration.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            confirmButtonText: 'Yes, restore',
+            cancelButtonText: 'Cancel'
+        }).then((result) => { if (result.isConfirmed) this.submit(); });
+    });
+</script>
+{% endblock %}

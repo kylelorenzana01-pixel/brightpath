@@ -1,0 +1,126 @@
+{% extends "admin/dashboard.html" %}
+
+{% block content %}
+<div class="admin-card">
+    <div class="card-header">
+        <h3><i class="fas fa-hand-holding-usd"></i> Cash Advance Requests</h3>
+    </div>
+    <div class="admin-table-container" style="overflow-x: auto;">
+        <table class="admin-table" style="min-width: 900px; width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background-color: #f8fafc;">
+                    <th style="padding: 12px; text-align: left;">ID</th>
+                    <th style="padding: 12px; text-align: left;">Employee</th>
+                    <th style="padding: 12px; text-align: left;">Amount (₱)</th>
+                    <th style="padding: 12px; text-align: left;">Repayment Months</th>
+                    <th style="padding: 12px; text-align: left;">Remaining Balance (₱)</th>
+                    <th style="padding: 12px; text-align: left;">Status</th>
+                    <th style="padding: 12px; text-align: left;">Date Filed</th>
+                    <th style="padding: 12px; text-align: center;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ca in advances %}
+                <tr style="border-bottom: 1px solid #e2e8f0;">
+                    <td style="padding: 10px;">#{{ ca.id }}</td>
+                    <td style="padding: 10px;">{{ ca.employee_name }} (ID: {{ ca.user_id }})</td>
+                    <td style="padding: 10px;">₱{{ "{:,.2f}".format(ca.amount) }}</td>
+                    <td style="padding: 10px;">{{ ca.repayment_months }}</td>
+                    <td style="padding: 10px;">₱{{ "{:,.2f}".format(ca.remaining_balance) }}</td>
+                    <td style="padding: 10px;">
+                        {% if ca.status == 'pending' %}
+                            <span class="badge bg-warning text-dark">Pending</span>
+                        {% elif ca.status == 'approved' %}
+                            <span class="badge bg-success">Approved</span>
+                        {% else %}
+                            <span class="badge bg-secondary">{{ ca.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 10px; white-space: nowrap;">{{ ca.created_at.strftime('%Y-%m-%d') if ca.created_at else '' }}</td>
+                    <td style="padding: 10px; text-align: center; white-space: nowrap;">
+                        {% if ca.status == 'pending' %}
+                            <button class="btn btn-sm btn-success approve-ca" data-id="{{ ca.id }}"><i class="fas fa-check"></i> Approve</button>
+                            <button class="btn btn-sm btn-danger reject-ca" data-id="{{ ca.id }}"><i class="fas fa-times"></i> Reject</button>
+                        {% elif ca.status == 'approved' and ca.remaining_balance > 0 %}
+                            <span class="text-muted">Active (deducting)</span>
+                        {% else %}
+                            <span class="text-muted">Completed</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" style="text-align: center; padding: 20px;">No cash advance requests found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    function getCsrfToken() {
+        return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    }
+
+    // Approve cash advance
+    document.querySelectorAll('.approve-ca').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const id = this.dataset.id;
+            Swal.fire({
+                title: 'Approve Cash Advance?',
+                text: 'This will mark the request as approved. Deductions will start on next published payroll.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#10b981',
+                confirmButtonText: 'Yes, approve'
+            }).then(result => {
+                if (result.isConfirmed) {
+                    fetch(`/admin/api/cash_advances/approve/${id}`, {
+                        method: 'POST',
+                        headers: { 'X-CSRFToken': getCsrfToken() }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire('Approved', '', 'success').then(() => location.reload());
+                        } else {
+                            Swal.fire('Error', data.message || 'Approval failed', 'error');
+                        }
+                    });
+                }
+            });
+        });
+    });
+
+    // Reject cash advance
+    document.querySelectorAll('.reject-ca').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const id = this.dataset.id;
+            Swal.fire({
+                title: 'Reject Cash Advance?',
+                text: 'This request will be rejected and the employee will be notified.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                confirmButtonText: 'Yes, reject'
+            }).then(result => {
+                if (result.isConfirmed) {
+                    fetch(`/admin/api/cash_advances/reject/${id}`, {
+                        method: 'POST',
+                        headers: { 'X-CSRFToken': getCsrfToken() }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire('Rejected', '', 'success').then(() => location.reload());
+                        } else {
+                            Swal.fire('Error', data.message || 'Rejection failed', 'error');
+                        }
+                    });
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

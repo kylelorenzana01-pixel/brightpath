@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Registration | BrightPath</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+    <style>
+        body { background: #1a1a1a; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: 'Segoe UI', sans-serif; }
+        .auth-card-small { background: white; padding: 35px; border-radius: 12px; width: 380px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border-top: 8px solid #2c3e50; }
+        .reg-form-group input { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
+        .btn-admin-submit { width: 100%; padding: 12px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn-admin-submit:hover { opacity: 0.9; }
+    </style>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+</head>
+<body class="reg-container">
+    <div class="auth-card-small admin-border">
+        <div class="icon-header">
+            <i class="fas fa-user-shield" style="font-size: 2.5rem; color: #2c3e50; margin-bottom: 10px;"></i>
+        </div>
+        
+        <h2 style="color: #2c3e50; margin-bottom: 5px;">Admin Registration</h2>
+        <p style="color: #666; font-size: 0.9rem; margin-bottom: 20px;">
+            Create an administrator account for <strong>BrightPath Company</strong>
+        </p>
+
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            {% for message in messages %}
+              <div style="color: #721c24; background-color: #f8d7da; padding: 10px; border-radius: 5px; font-size: 0.8rem; margin-bottom: 15px; border: 1px solid #f5c6cb;">
+                {{ message }}
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <form action="/brightpath-admin-registration-2026" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="reg-form-group">
+                <input type="text" name="full_name" placeholder="Full Name" required>
+            </div>
+            <div class="reg-form-group">
+                <input type="email" name="email" placeholder="Gmail Address" required>
+            </div>
+            <div class="reg-form-group">
+                <input type="password" name="password" placeholder="Create Password" required>
+            </div>
+
+            <div class="reg-form-group" style="margin-top: 15px;">
+                <label style="display: block; text-align: left; font-size: 0.75rem; color: #d9534f; font-weight: bold; margin-left: 5px; margin-bottom: 5px;">
+                    Master Security Key
+                </label>
+                <input type="password" name="admin_key" placeholder="Enter System Master Key" 
+                       style="border: 2px solid #d9534f;" required>
+            </div>
+
+            <button type="submit" class="btn-admin-submit" style="background-color: #2c3e50; color: white; margin-top: 20px;">
+                Register Admin Account
+            </button>
+        </form>
+
+        <div style="margin-top: 25px; border-top: 1px solid #eee; padding-top: 15px;">
+            <a href="/brightpath-admin-portal-2026" style="text-decoration: none; color: #3498db; font-size: 0.85rem; font-weight: bold;">
+                <i class="fas fa-arrow-left"></i> Back to Admin Terminal
+            </a>
+        </div>
+    </div>
+</body>
+</html>

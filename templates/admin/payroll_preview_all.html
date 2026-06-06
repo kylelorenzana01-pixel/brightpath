@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Payroll Preview | BrightPath Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin/dashboard.css') }}">
+    <style>
+        .preview-table th, .preview-table td { vertical-align: middle; }
+        .deduction-row td:last-child, .earning-row td:last-child { font-weight: bold; }
+        .total-row { background-color: #f8fafc; font-weight: bold; }
+        @media print { .no-print { display: none; } }
+    </style>
+</head>
+<body>
+
+<!-- ========== FULL SIDEBAR (same as dashboard) ========== -->
+<aside class="admin-sidebar">
+    <div class="sidebar-brand"><h3>BrightPath</h3><small>ADMIN PANEL</small></div>
+    <nav class="nav flex-column">
+        <a class="nav-link" href="{{ url_for('admin_dashboard') }}#dashboard-tab"><i class="fas fa-chart-line"></i> Dashboard</a>
+        <a class="nav-link" href="{{ url_for('admin_dashboard') }}#employees-tab"><i class="fas fa-users"></i> Employees</a>
+        <a class="nav-link" href="{{ url_for('admin_dashboard') }}#payroll-tab"><i class="fas fa-money-check-alt"></i> Payroll</a>
+        <a class="nav-link" href="{{ url_for('admin_deductions_combined') }}"><i class="fas fa-calculator"></i> Deductions & Taxes</a>
+        <a class="nav-link" href="{{ url_for('admin_dashboard') }}#reports-tab"><i class="fas fa-file-alt"></i> Reports</a>
+        <a class="nav-link" href="{{ url_for('admin_dashboard') }}#leaves-tab"><i class="fas fa-calendar-alt"></i> Leaves</a>
+        <a class="nav-link" href="{{ url_for('admin_attendance_list') }}"><i class="fas fa-calendar-check"></i> Attendance</a>
+        <a class="nav-link" href="{{ url_for('admin_payroll_list') }}"><i class="fas fa-list-ul"></i> Payroll List</a>
+        <a class="nav-link" href="{{ url_for('admin_deductions_combined') }}"><i class="fas fa-cog"></i> Deductions Settings</a>
+        <a class="nav-link" href="{{ url_for('admin_timesheet') }}"><i class="fas fa-clipboard-list"></i> Timesheet</a>
+        <a class="nav-link" href="{{ url_for('admin_overtime_requests') }}"><i class="fas fa-clock"></i> Overtime Requests</a>
+    </nav>
+    <div class="logout-btn"><a href="/logout" class="nav-link"><i class="fas fa-sign-out-alt"></i> Logout</a></div>
+</aside>
+
+<main class="admin-main">
+    <div class="admin-header">
+        <div class="header-title"><h1>Payroll Preview</h1><p>Review before generating payslip</p></div>
+        <div class="header-clock"><h3 id="liveClock">--:--:--</h3><small id="liveDate">Loading date...</small></div>
+    </div>
+
+    <div class="admin-card">
+        <div class="card-header"><h3><i class="fas fa-user"></i> Employee: {{ employee.name }} ({{ employee.position }})</h3></div>
+        <div class="card-body">
+            <p><strong>Period:</strong> {{ start_date }} to {{ end_date }}</p>
+            <p><strong>Payroll Date:</strong> {{ payroll_date }}</p>
+            <p><strong>Daily Rate:</strong> ₱{{ "{:,.2f}".format(employee.daily_rate) }} | <strong>Hourly Rate:</strong> ₱{{ "{:,.2f}".format(hourly_rate) }}</p>
+        </div>
+    </div>
+
+    <!-- DTR Table -->
+    <div class="admin-card">
+        <div class="card-header"><h3><i class="fas fa-calendar-day"></i> Daily Time Record</h3></div>
+        <div class="admin-table-container">
+            <table class="admin-table preview-table">
+                <thead>
+                    <tr><th>Date</th><th>Time In</th><th>Time Out</th><th>Late (min)</th><th>Undertime (min)</th></tr>
+                </thead>
+                <tbody>
+                    {% for rec in attendance_records %}
+                    <tr>
+                        <td>{{ rec.log_date_str }}</td
+                        <td>{{ rec.time_in_str }}</td
+                        <td>{{ rec.time_out_str }}</td
+                        <td>{{ rec.minutes_late or 0 }}</td
+                        <td>{{ rec.undertime_minutes or 0 }}</td
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5">No attendance records for this period.</td
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="mt-3"><p><strong>Summary:</strong> Days Present: {{ days_present }} | Total Late: {{ total_late_minutes }} min | Total Undertime: {{ total_undertime_minutes }} min | Approved Overtime Hours: {{ overtime_hours }}</p></div>
+    </div>
+
+    <!-- Earnings & Deductions -->
+    <div class="row g-4">
+        <div class="col-md-6">
+            <div class="admin-card">
+                <div class="card-header"><h3><i class="fas fa-coins"></i> Earnings</h3></div>
+                <table class="table table-borderless">
+                    <tr><td>Basic Pay ({{ days_present }} days × ₱{{ "{:,.2f}".format(employee.daily_rate) }})</td><td class="text-end">₱{{ "{:,.2f}".format(basic_pay) }}</td></tr>
+                    <tr><td>Overtime Pay ({{ overtime_hours }} hrs × ₱{{ "{:,.2f}".format(hourly_rate*1.25) }})</td><td class="text-end">₱{{ "{:,.2f}".format(overtime_pay) }}</td></tr>
+                    <tr class="total-row"><td><strong>Gross Pay</strong></td><td class="text-end"><strong>₱{{ "{:,.2f}".format(gross_pay) }}</strong></td></tr>
+                </table>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="admin-card">
+                <div class="card-header"><h3><i class="fas fa-minus-circle"></i> Deductions</h3></div>
+                <table class="table table-borderless">
+                    <tr><td>Late ({{ total_late_minutes }} min × ₱{{ "{:,.2f}".format(hourly_rate/60) }})</td><td class="text-end">₱{{ "{:,.2f}".format(tardiness_deduction) }}</td></tr>
+                    <tr><td>Undertime ({{ total_undertime_minutes }} min × ₱{{ "{:,.2f}".format(hourly_rate/60) }})</td><td class="text-end">₱{{ "{:,.2f}".format(undertime_deduction) }}</td></tr>
+                    <tr><td>SSS ({{ sss_percent }}% of gross, capped)</td><td class="text-end">₱{{ "{:,.2f}".format(sss) }}</td></tr>
+                    <tr><td>PhilHealth ({{ phil_percent }}% of gross, capped)</td><td class="text-end">₱{{ "{:,.2f}".format(philhealth) }}</td></tr>
+                    <tr><td>Pag-IBIG ({{ pagibig_percent }}% of gross, capped)</td><td class="text-end">₱{{ "{:,.2f}".format(pagibig) }}</td></tr>
+                    <tr><td>Withholding Tax</td><td class="text-end">₱{{ "{:,.2f}".format(withholding_tax) }}</td></tr>
+                    <tr class="total-row"><td><strong>Total Deductions</strong></td><td class="text-end"><strong>₱{{ "{:,.2f}".format(total_deductions) }}</strong></td><tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Net Pay and Action -->
+    <div class="admin-card text-center bg-light">
+        <h2 class="text-success">Net Pay: ₱{{ "{:,.2f}".format(net_pay) }}</h2>
+        <div class="mt-3 no-print">
+            <form method="POST" action="{{ url_for('admin_payroll_generate_single') }}" target="_blank">
+                <input type="hidden" name="employee_id" value="{{ employee.id }}">
+                <input type="hidden" name="cutoff_start" value="{{ start_date }}">
+                <input type="hidden" name="cutoff_end" value="{{ end_date }}">
+                <input type="hidden" name="payroll_date" value="{{ payroll_date }}">
+                <input type="hidden" name="status" value="published">
+                <button type="submit" class="btn btn-success btn-lg"><i class="fas fa-file-invoice-dollar"></i> Generate Payroll & View Payslip</button>
+                <a href="{{ url_for('admin_dashboard') }}#payroll-tab" class="btn btn-secondary btn-lg">Cancel</a>
+            </form>
+        </div>
+    </div>
+</main>
+
+<script>
+    function updateClock(){const n=new Date();const e=document.getElementById('liveClock'),t=document.getElementById('liveDate');e&&(e.textContent=n.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:!0})),t&&(t.textContent=n.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'}));}
+    setInterval(updateClock,1000);updateClock();
+</script>
+</body>
+</html>

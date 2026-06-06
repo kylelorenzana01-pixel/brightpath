@@ -1,0 +1,54 @@
+{% extends "admin/dashboard.html" %}
+
+{% block content %}
+<div class="admin-card">
+    <div class="card-header">
+        <h3><i class="fas fa-calendar-day"></i> Holiday Management</h3>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addHolidayModal">+ Add Holiday</button>
+    </div>
+    <div class="card-body">
+        <div class="admin-table-container">
+            <table class="admin-table">
+                <thead>
+                    <tr><th>Date</th><th>Name</th><th>Type</th><th>Action</th></tr>
+                </thead>
+                <tbody>
+                    {% for holiday in holidays %}
+                    <tr>
+                        <td>{{ holiday.holiday_date }}</td>
+                        <td>{{ holiday.name }}</td>
+                        <td>{% if holiday.is_regular %}<span class="badge bg-primary">Regular</span>{% else %}<span class="badge bg-info">Special</span>{% endif %}</td>
+                        <td>
+                            <form method="POST" action="{{ url_for('admin_holidays_delete', id=holiday.id) }}" style="display:inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this holiday?')"><i class="fas fa-trash"></i> Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4">No holidays found.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add Holiday Modal -->
+<div class="modal fade" id="addHolidayModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('admin_holidays_add') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header bg-primary text-white"><h5 class="modal-title">Add Holiday</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <div class="mb-3"><label>Date</label><input type="date" name="holiday_date" class="form-control" required></div>
+                    <div class="mb-3"><label>Holiday Name</label><input type="text" name="name" class="form-control" placeholder="e.g., Araw ng Kagitingan" required></div>
+                    <div class="form-check mb-3"><input type="checkbox" name="is_regular" class="form-check-input" id="isRegular"><label class="form-check-label" for="isRegular">Regular Holiday (higher pay rate)</label></div>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary">Save Holiday</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

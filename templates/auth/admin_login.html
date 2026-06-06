@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login | BrightPath</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin/login.css') }}">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+</head>
+<body>
+
+<div class="admin-login-card">
+    <div class="security-badge">
+        <i class="fas fa-shield-alt"></i> ADMIN ACCESS
+    </div>
+
+    <div class="text-center">
+        <i class="fas fa-user-shield admin-icon"></i>
+        <h2>Admin</h2>
+        <p class="subtitle">BrightPath Co.</p>
+    </div>
+
+    <div class="warning-box">
+        <i class="fas fa-exclamation-triangle"></i>
+        <span>Authorized Administrators Only. Unauthorized access is prohibited.</span>
+    </div>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        {% for message in messages %}
+          <div class="flash-message">
+            <i class="fas fa-info-circle"></i> {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form action="/admin/login_action" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="input-group">
+            <label><i class="fas fa-envelope"></i> Email Address</label>
+            <input type="email" name="email" placeholder="admin@brightpath.com" required autocomplete="off">
+        </div>
+        <div class="input-group">
+            <label><i class="fas fa-lock"></i> Password</label>
+            <input type="password" name="password" placeholder="Enter your password" required>
+        </div>
+        <button type="submit" class="btn-admin-login">
+            <i class="fas fa-sign-in-alt"></i> LOGIN
+        </button>
+    </form>
+
+    <!-- Registration Link -->
+    <div class="text-center mt-3">
+        <a href="{{ url_for('secret_admin_signup') }}" class="text-decoration-none" style="color: #3b82f6; font-size: 0.85rem;">
+            <i class="fas fa-user-plus"></i> Register New Admin
+        </a>
+    </div>
+
+    <div class="ip-info">
+        <i class="fas fa-network-wired"></i> 
+    </div>
+</div>
+
+</body>
+</html>

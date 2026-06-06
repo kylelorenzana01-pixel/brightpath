@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Leave Requests | BrightPath Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin/dashboard.css') }}">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+</head>
+<body>
+<aside class="admin-sidebar">
+    <!-- copy sidebar from dashboard.html or use the same -->
+    <div class="sidebar-brand"><h3>BrightPath</h3><small>ADMIN PANEL</small></div>
+    <nav class="nav flex-column">
+        <a class="nav-link" href="{{ url_for('admin_dashboard') }}"><i class="fas fa-chart-line"></i> Dashboard</a>
+        <a class="nav-link" href="{{ url_for('admin_employees_page') }}"><i class="fas fa-users"></i> Employees</a>
+        <a class="nav-link" href="{{ url_for('admin_payroll_page') }}"><i class="fas fa-money-check-alt"></i> Payroll</a>
+        <a class="nav-link" href="{{ url_for('admin_payroll_list') }}"><i class="fas fa-list-ul"></i> Payroll List</a>
+        <a class="nav-link" href="{{ url_for('admin_deductions_combined') }}"><i class="fas fa-calculator"></i> Deductions</a>
+        <a class="nav-link active" href="{{ url_for('admin_leaves_page') }}"><i class="fas fa-calendar-alt"></i> Leaves</a>
+        <a class="nav-link" href="{{ url_for('admin_overtime_requests') }}"><i class="fas fa-clock"></i> Overtime</a>
+        <a class="nav-link" href="{{ url_for('admin_attendance_list') }}"><i class="fas fa-calendar-check"></i> Attendance</a>
+        <a class="nav-link" href="{{ url_for('admin_reports_page') }}"><i class="fas fa-file-alt"></i> Reports</a>
+        <a class="nav-link" href="{{ url_for('admin_generated_reports_page') }}"><i class="fas fa-folder-open"></i> Generated Reports</a>
+        <a class="nav-link {{ 'active' if request.endpoint == 'admin_holidays' else '' }}" href="{{ url_for('admin_holidays') }}"><i class="fas fa-calendar-day"></i> Holiday Management</a>
+        <a class="nav-link {{ 'active' if request.endpoint == 'admin_audit_logs' else '' }}" href="{{ url_for('admin_audit_logs') }}"><i class="fas fa-history"></i> Audit Logs</a>
+        <a class="nav-link {{ 'active' if request.endpoint == 'admin_backup_restore_page' else '' }}" href="{{ url_for('admin_backup_restore_page') }}"><i class="fas fa-database"></i> Backup & Restore</a>
+    </nav>
+    <div class="logout-btn"><a href="{{ url_for('logout', role='admin') }}" class="nav-link"><i class="fas fa-sign-out-alt"></i> Logout</a></div>
+</aside>
+<main class="admin-main">
+    <div class="admin-header">
+        <div class="header-title"><h1>Leave Requests</h1><p>Approve or reject employee leave</p></div>
+        <div class="header-clock"><h3 id="liveClock">--:--:--</h3><small id="liveDate"></small></div>
+    </div>
+    <div class="admin-card">
+        <div class="card-header"><h3>Pending Leaves</h3></div>
+        <div class="admin-table-container">
+            <table class="admin-table">
+                <thead><tr><th>Employee</th><th>Type</th><th>Start Date</th><th>End Date</th><th>Reason</th><th>Status</th><th>Action</th></tr></thead>
+                <tbody>
+                    {% for leave in leaves %}
+                    <tr>
+                        <td>{{ leave.name }}</td>
+                        <td>{{ leave.leave_type }}</td>
+                        <td>{{ leave.start_date }}</td>
+                        <td>{{ leave.end_date }}</td>
+                        <td>{{ leave.reason[:50] }}</td>
+                        <td>Pending</td>
+                        <td>
+                            <button class="btn btn-sm btn-success approve-leave" data-id="{{ leave.id }}">Approve</button>
+                            <button class="btn btn-sm btn-danger reject-leave" data-id="{{ leave.id }}">Reject</button>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="7">No pending leave requests.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+function getCsrfToken() { return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''; }
+function updateClock() {
+    const now = new Date();
+    const clockEl = document.getElementById('liveClock');
+    const dateEl = document.getElementById('liveDate');
+    if (clockEl) clockEl.textContent = now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true });
+    if (dateEl) dateEl.textContent = now.toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+document.querySelectorAll('.approve-leave').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const id = this.dataset.id;
+        fetch(`/admin/leave/approve/${id}`, { method: 'POST', headers: { 'X-CSRFToken': getCsrfToken() } })
+            .then(res => res.json())
+            .then(data => { if (data.success) location.reload(); else Swal.fire('Error', data.message, 'error'); });
+    });
+});
+document.querySelectorAll('.reject-leave').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const id = this.dataset.id;
+        fetch(`/admin/leave/reject/${id}`, { method: 'POST', headers: { 'X-CSRFToken': getCsrfToken() } })
+            .then(res => res.json())
+            .then(data => { if (data.success) location.reload(); else Swal.fire('Error', data.message, 'error'); });
+    });
+});
+</script>
+</body>
+</html>

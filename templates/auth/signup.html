@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Registration | BrightPath</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/shared/base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/employee/auth.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/employee/signup.css') }}">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    
+    <style>
+        .input-group { position: relative; }
+        .input-group i:first-child { left: 16px !important; right: auto !important; z-index: 1; }
+        .toggle-password { position: absolute; right: 16px !important; left: auto !important; top: 50%; transform: translateY(-50%); cursor: pointer; color: #94a3b8; z-index: 2; transition: color 0.2s; font-size: 1rem; }
+        .toggle-password:hover { color: #3b82f6; }
+        .input-group input { padding-left: 45px !important; padding-right: 45px !important; }
+    </style>
+</head>
+<body class="reg-wrapper">
+
+    <div class="auth-card-small">
+        <i class="fas fa-user-plus main-icon"></i>
+        <h2>Employee Registration</h2>
+        <p class="subtitle">Join the BrightPath Team</p>
+
+        <form id="finalSignupForm" action="/register_employee_action" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="full_name" id="hidden_name">
+            <input type="hidden" name="email" id="hidden_email">
+            <input type="hidden" name="password" id="hidden_password">
+        </form>
+
+        <div id="step-1">
+            <div class="input-group">
+                <i class="fas fa-user"></i>
+                <input type="text" id="full_name" placeholder="Full Name" required>
+            </div>
+            <div class="input-group">
+                <i class="fas fa-envelope"></i>
+                <input type="email" id="email" placeholder="Email Address" required>
+            </div>
+            <div class="input-group">
+                <i class="fas fa-lock"></i>
+                <input type="password" id="password" placeholder="Create Password" required>
+                <i class="fas fa-eye toggle-password" id="togglePassword"></i>
+            </div>
+            <button type="button" class="btn-next" onclick="showFaceScan()">
+                Next: Face Setup <i class="fas fa-arrow-right ms-2"></i>
+            </button>
+        </div>
+
+        <div id="step-2" class="hidden">
+            <div id="video-container">
+                <img id="video-feed" src="" class="video-display">
+                <div id="loading-video">
+                    <i class="fas fa-circle-notch fa-spin"></i> Initializing Camera...
+                </div>
+            </div>
+
+            <div class="progress-container" id="prog-cont">
+                <div class="progress-bar" id="prog-bar"></div>
+            </div>
+            
+            <p id="scan-status">Look directly at the camera</p>
+            
+            <button type="button" id="register-btn" class="btn-complete" onclick="startCombinedRegistration()">
+                Complete Registration
+            </button>
+            <button type="button" class="btn-back-edit" onclick="showForm()">
+                <i class="fas fa-arrow-left me-2"></i> Back to Edit Info
+            </button>
+        </div>
+
+        <div class="auth-footer">
+            <a href="{{ url_for('index') }}">Already have an account? <strong>Back To Login</strong></a>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/signup.js') }}"></script>
+    <script>
+        const togglePassword = document.getElementById('togglePassword');
+        const passwordInput = document.getElementById('password');
+        if (togglePassword && passwordInput) {
+            togglePassword.addEventListener('click', function() {
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+                this.classList.toggle('fa-eye');
+                this.classList.toggle('fa-eye-slash');
+            });
+        }
+    </script>
+</body>
+</html>

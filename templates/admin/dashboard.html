@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Admin Dashboard | BrightPath</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin/dashboard.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        .stats-grid { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; }
+        .stat-card { flex: 1; min-width: 170px; max-width: 220px; background: white; padding: 1rem; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border-left: 4px solid #3b82f6; transition: transform 0.2s; cursor: pointer; }
+        .stat-card:hover { transform: translateY(-3px); }
+        .stat-card .stat-icon { font-size: 1.5rem; margin-bottom: 0.5rem; }
+        .stat-card .stat-value { font-size: 1.8rem; font-weight: 700; line-height: 1.2; }
+        .stat-card .stat-label { font-size: 0.75rem; color: #64748b; margin-top: 0.25rem; }
+        .admin-card { background: white; border-radius: 20px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid #e2e8f0; }
+        .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; display: inline-block; }
+        .status-present { background: #d1fae5; color: #065f46; }
+        .status-late { background: #fed7aa; color: #9a3412; }
+        .action-buttons { display: flex; flex-wrap: wrap; gap: 5px; }
+    </style>
+</head>
+<body>
+
+<aside class="admin-sidebar">
+    <div class="sidebar-brand"><h3>BrightPath</h3><small>ADMIN PANEL</small></div>
+    <nav class="nav flex-column">
+        <a class="nav-link {{ 'active' if request.endpoint == 'admin_dashboard' else '' }}" href="{{ url_for('admin_dashboard') }}"><i class="fas fa-chart-line"></i> Dashboard</a>
+        <a class="nav-link {{ 'active' if request.endpoint == 'admin_employees_page' else '' }}" href="{{ url_for('admin_employees_page') }}"><i class="fas fa-users"></i> Employees</a>
+        <a class="nav-link {{ 'active' if request.endpoint == 'admin_payroll_page' else '' }}" href="{{ url_for('admin_payroll_page') }}"><i class="fas fa-money-check-alt"></i> Payroll</a>
+        <a class="nav-link {{ 'active' if request.endpoint == 'admin_payroll_list' else '' }}" href="{{ url_for('admin_payroll_list') }}"><i class="fas fa-list-ul"></i> Payroll List</a>
+        <a class="nav-link {{ 'active' if request.endpoint == 'admin_deductions_combined' else '' }}" href="{{ url_for('admin_deductions_combined') }}"><i class="fas fa-calculator"></i> Deductions</a>
+        <a class="nav-link {{ 'active' if request.endpoint == 'admin_leaves_page' else '' }}" href="{{ url_for('admin_leaves_page') }}"><i class="fas fa-calendar-alt"></i> Leaves</a>
+        <a class="nav-link {{ 'active' if request.endpoint == 'admin_overtime_requests' else '' }}" href="{{ url_for('admin_overtime_requests') }}"><i class="fas fa-clock"></i> Overtime</a>
+        <a class="nav-link {{ 'active' if request.endpoint == 'admin_cash_advances' else '' }}" href="{{ url_for('admin_cash_advances') }}"><i class="fas fa-hand-holding-usd"></i> Cash Advances</a>
+        <a class="nav-link {{ 'active' if request.endpoint == 'admin_attendance_list' else '' }}" href="{{ url_for('admin_attendance_list') }}"><i class="fas fa-calendar-check"></i> Attendance</a>
+        <a class="nav-link {{ 'active' if request.endpoint == 'admin_reports_page' else '' }}" href="{{ url_for('admin_reports_page') }}"><i class="fas fa-file-alt"></i> Reports</a>
+        <a class="nav-link {{ 'active' if request.endpoint == 'admin_generated_reports_page' else '' }}" href="{{ url_for('admin_generated_reports_page') }}"><i class="fas fa-folder-open"></i> Generated Reports</a>
+        <a class="nav-link {{ 'active' if request.endpoint == 'admin_holidays' else '' }}" href="{{ url_for('admin_holidays') }}"><i class="fas fa-calendar-day"></i> Holiday Management</a>
+        <a class="nav-link {{ 'active' if request.endpoint == 'admin_audit_logs' else '' }}" href="{{ url_for('admin_audit_logs') }}"><i class="fas fa-history"></i> Audit Logs</a>
+        <a class="nav-link {{ 'active' if request.endpoint == 'admin_backup_restore_page' else '' }}" href="{{ url_for('admin_backup_restore_page') }}"><i class="fas fa-database"></i> Backup & Restore</a>
+         
+    </nav>
+    <div class="logout-btn"><a href="{{ url_for('logout', role='admin') }}" class="nav-link"><i class="fas fa-sign-out-alt"></i> Logout</a></div>
+</aside>
+
+<main class="admin-main">
+    {% block content %}
+    <div class="admin-header">
+        <div class="header-title"><h1>Admin Dashboard</h1><p>Overview of your organization</p></div>
+        <div class="d-flex gap-3 align-items-center">
+            <div class="notification-dropdown" style="position: relative;">
+                <button id="adminNotificationBell" class="btn btn-light rounded-circle position-relative"><i class="fas fa-bell"></i><span id="adminNotifBadge" class="badge bg-danger" style="display:none;">0</span></button>
+                <div id="adminNotificationMenu" class="dropdown-menu p-0 shadow-lg" style="display:none; width:350px; right:0; left:auto; border-radius:16px; z-index:1050;">
+                    <div class="p-3 border-bottom bg-light"><strong>Pending Requests</strong></div>
+                    <div id="adminNotificationList" style="max-height:400px; overflow-y:auto;"><div class="text-center p-4">Loading...</div></div>
+                </div>
+            </div>
+            <div class="header-clock"><h3 id="liveClock" class="mb-0">--:--:--</h3><small id="liveDate">Loading date...</small></div>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages() %}{% if messages %}{% for message in messages %}<div class="alert alert-info alert-dismissible fade show rounded-4 mb-3">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>{% endfor %}{% endif %}{% endwith %}
+
+    <div class="stats-grid">
+        <div class="stat-card" data-url="{{ url_for('admin_employees_page') }}">
+            <div class="stat-icon"><i class="fas fa-users"></i></div>
+            <div class="stat-value">{{ all_employees|length }}</div>
+            <div class="stat-label">Total Employees</div>
+        </div>
+        <div class="stat-card" onclick="showActiveEmployees()">
+            <div class="stat-icon"><i class="fas fa-calendar-check"></i></div>
+            <div class="stat-value">{{ active_today }}</div>
+            <div class="stat-label">Active Today</div>
+        </div>
+        <div class="stat-card" onclick="showLateEmployees()">
+            <div class="stat-icon"><i class="fas fa-clock"></i></div>
+            <div class="stat-value">{{ late_today }}</div>
+            <div class="stat-label">Late Today</div>
+        </div>
+        <div class="stat-card" data-url="{{ url_for('admin_payroll_list') }}">
+            <div class="stat-icon"><i class="fas fa-file-invoice-dollar"></i></div>
+            <div class="stat-value">{{ payroll_records|length }}</div>
+            <div class="stat-label">Payroll Records</div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-md-6"><div class="admin-card"><div class="card-header"><h3><i class="fas fa-chart-bar me-2"></i> Weekly Attendance Summary</h3></div><div class="card-body"><canvas id="attendanceChart" height="150"></canvas></div></div></div>
+        <div class="col-md-6"><div class="admin-card"><div class="card-header"><h3><i class="fas fa-chart-line me-2"></i> Payroll Trends (Last 6 Months)</h3></div><div class="card-body"><canvas id="payrollChart" height="150"></canvas></div></div></div>
+    </div>
+
+    <div class="admin-card">
+        <div class="card-header"><h3><i class="fas fa-clock me-2"></i> Today's Attendance</h3></div>
+        <div class="admin-table-container"><table class="admin-table"><thead><tr><th>Employee</th><th>Time In</th><th>Time Out</th><th>Status</th></tr></thead><tbody>
+        {% for att in attendance %}
+            <tr>
+                <td>{{ att.name }}</td>
+                <td>{{ att.time_in if att.time_in else '--:--' }}</td>
+                <td>{{ att.time_out if att.time_out else '--:--' }}</td>
+                <td>
+                    {% if att.time_in %}
+                        {% if att.status == 'On Time' %}
+                            <span class="status-badge status-present">On Time</span>
+                        {% elif att.status == 'Late' %}
+                            <span class="status-badge status-late">Late</span>
+                        {% else %}
+                            <span class="status-badge status-present">Present</span>
+                        {% endif %}
+                    {% else %}
+                        <span class="status-badge" style="background:#fee2e2;color:#991b1b;">Absent</span>
+                    {% endif %}
+                </td>
+            </tr>
+        {% else %}
+            <tr><td colspan="4">No attendance records today.</td></tr>
+        {% endfor %}
+        </tbody></table></div>
+    </div>
+    {% endblock %}
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="{{ url_for('static', filename='js/admin_dashboard.js') }}"></script>
+<script>
+// Helper
+function escapeHtml(text) { if (!text) return ''; const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
+
+// Stat card clicks (Total Employees & Payroll Records)
+document.querySelectorAll('.stat-card[data-url]').forEach(card => {
+    card.addEventListener('click', function() {
+        const url = this.getAttribute('data-url');
+        if (url) window.location.href = url;
+    });
+});
+
+// Active/Late Employees Modals
+function showActiveEmployees() {
+    fetch('/admin/api/active_employees')
+        .then(res=>res.json())
+        .then(data=>{
+            let html='';
+            if(data.success && data.employees.length){
+                data.employees.forEach(emp=>{
+                    html+=`<li><strong>${escapeHtml(emp.name)}</strong> - ${emp.position || 'Staff'} (Time in: ${emp.time_in})</li>`;
+                });
+                Swal.fire({title:'Active Employees',html:`<ul>${html}</ul>`,icon:'info'});
+            } else Swal.fire('Info','No active employees','info');
+        });
+}
+function showLateEmployees() {
+    fetch('/admin/api/late_employees')
+        .then(res=>res.json())
+        .then(data=>{
+            let html='';
+            if(data.success && data.employees.length){
+                data.employees.forEach(emp=>{
+                    html+=`<li><strong>${escapeHtml(emp.name)}</strong> - ${emp.position || 'Staff'} (Late: ${emp.minutes_late} mins, Time in: ${emp.time_in})</li>`;
+                });
+                Swal.fire({title:'Late Employees',html:`<ul>${html}</ul>`,icon:'warning'});
+            } else Swal.fire('Info','No late employees','info');
+        });
+}
+
+// Refresh stats – only if stats grid exists
+if (document.querySelector('.stats-grid')) {
+    function refreshAdminStats() {
+        fetch('/admin/api/stats')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const statValues = document.querySelectorAll('.stat-card .stat-value');
+                    if (statValues.length >= 4) {
+                        statValues[0].innerText = data.total_employees;
+                        statValues[1].innerText = data.active_today;
+                        statValues[2].innerText = data.late_today;
+                        statValues[3].innerText = data.payroll_records;
+                    }
+                    const tbody = document.querySelector('#dashboard-tab .admin-table tbody');
+                    if (tbody && data.attendance) {
+                        let html = '';
+                        data.attendance.forEach(att => {
+                            let statusHtml = '';
+                            if (att.time_in) {
+                                if (att.status === 'On Time') {
+                                    statusHtml = '<span class="status-badge status-present">On Time</span>';
+                                } else if (att.status === 'Late') {
+                                    statusHtml = '<span class="status-badge status-late">Late</span>';
+                                } else {
+                                    statusHtml = '<span class="status-badge status-present">Present</span>';
+                                }
+                            } else {
+                                statusHtml = '<span class="status-badge" style="background:#fee2e2;color:#991b1b;">Absent</span>';
+                            }
+                            html += `<tr><td>${escapeHtml(att.name)}</td><td>${att.time_in || '--:--'}</td><td>${att.time_out || '--:--'}</td><td>${statusHtml}</td></tr>`;
+                        });
+                        if (html === '') html = '<tr><td colspan="4">No attendance records today.</td></tr>';
+                        tbody.innerHTML = html;
+                    }
+                }
+            })
+            .catch(err => console.error('Auto-refresh failed:', err));
+    }
+    setInterval(refreshAdminStats, 30000);
+    document.addEventListener('DOMContentLoaded', refreshAdminStats);
+}
+
+// Charts – only if canvas elements exist
+if (document.getElementById('attendanceChart') && document.getElementById('payrollChart')) {
+    function loadCharts() {
+        // Attendance chart
+        fetch('/admin/api/attendance_summary')
+            .then(res => res.json())
+            .then(data => {
+                const ctx = document.getElementById('attendanceChart')?.getContext('2d');
+                if (ctx && window.attendanceChartInstance) window.attendanceChartInstance.destroy();
+                if (ctx) {
+                    window.attendanceChartInstance = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: data.days,
+                            datasets: [
+                                { label: 'Present', data: data.present, backgroundColor: '#10b981' },
+                                { label: 'Late', data: data.late, backgroundColor: '#f59e0b' },
+                                { label: 'Absent', data: data.absent, backgroundColor: '#ef4444' }
+                            ]
+                        },
+                        options: { responsive: true, maintainAspectRatio: true }
+                    });
+                }
+            })
+            .catch(err => console.error('Attendance chart error:', err));
+        // Payroll trend chart
+        fetch('/admin/api/payroll_trend')
+            .then(res => res.json())
+            .then(data => {
+                const ctx = document.getElementById('payrollChart')?.getContext('2d');
+                if (ctx && window.payrollChartInstance) window.payrollChartInstance.destroy();
+                if (ctx) {
+                    window.payrollChartInstance = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: data.months,
+                            datasets: [{ label: 'Total Payroll (₱)', data: data.amounts, borderColor: '#3b82f6', fill: true }]
+                        },
+                        options: { responsive: true, plugins: { tooltip: { callbacks: { label: (ctx) => `₱${ctx.raw.toLocaleString()}` } } } }
+                    });
+                }
+            })
+            .catch(err => console.error('Payroll chart error:', err));
+    }
+    loadCharts();
+    // Optional: reload when dashboard tab becomes active (if tabs are used)
+    const dashboardTab = document.getElementById('dashboard-tab');
+    if (dashboardTab && dashboardTab.classList.contains('active')) loadCharts();
+    const dashboardNav = document.querySelector('.nav-link[data-tab="dashboard-tab"]');
+    if (dashboardNav) dashboardNav.addEventListener('click', () => setTimeout(loadCharts, 200));
+}
+
+// Notifications
+function loadAdminNotifications() {
+    fetch('/admin/api/pending_requests')
+        .then(res => res.json())
+        .then(data => {
+            const badge = document.getElementById('adminNotifBadge');
+            const container = document.getElementById('adminNotificationList');
+            if (data.success) {
+                if (badge) {
+                    if (data.total > 0) {
+                        badge.style.display = 'flex';
+                        badge.innerText = data.total > 9 ? '9+' : data.total;
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                }
+                if (container) {
+                    if (data.requests.length) {
+                        let html = '';
+                        data.requests.forEach(req => {
+                            html += `<div class="notification-item" data-url="${req.url}">
+                                        <div class="notification-message">${escapeHtml(req.text)}</div>
+                                        <div class="notification-time">${req.type}</div>
+                                    </div>`;
+                        });
+                        container.innerHTML = html;
+                        document.querySelectorAll('#adminNotificationList .notification-item').forEach(item => {
+                            item.addEventListener('click', function() {
+                                if (this.dataset.url) window.location.href = this.dataset.url;
+                            });
+                        });
+                    } else {
+                        container.innerHTML = '<div class="text-center p-4">No pending requests</div>';
+                    }
+                }
+            }
+        });
+}
+const bell = document.getElementById('adminNotificationBell');
+const menu = document.getElementById('adminNotificationMenu');
+if (bell && menu) {
+    bell.addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (menu.style.display === 'none' || !menu.style.display) {
+            loadAdminNotifications();
+            menu.style.display = 'block';
+        } else {
+            menu.style.display = 'none';
+        }
+    });
+    document.addEventListener('click', function(e) {
+        if (!bell.contains(e.target) && !menu.contains(e.target)) menu.style.display = 'none';
+    });
+}
+setInterval(loadAdminNotifications, 30000);
+document.addEventListener('DOMContentLoaded', loadAdminNotifications);
+</script>
+</body>
+</html>

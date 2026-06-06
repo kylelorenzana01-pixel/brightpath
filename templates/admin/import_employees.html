@@ -1,0 +1,42 @@
+{% extends "admin/dashboard.html" %}
+
+{% block content %}
+<div class="admin-card">
+    <div class="card-header">
+        <h3><i class="fas fa-file-upload"></i> Batch Import Employees (CSV)</h3>
+    </div>
+    <div class="card-body">
+        <form method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="mb-3">
+                <label class="form-label">Choose CSV File</label>
+                <input type="file" name="csv_file" accept=".csv" class="form-control" required>
+                <small class="text-muted">File must be in CSV format with header row.</small>
+            </div>
+            <button type="submit" class="btn btn-primary"><i class="fas fa-upload"></i> Upload & Import</button>
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">Cancel</a>
+        </form>
+
+        <hr>
+        <h6><i class="fas fa-info-circle"></i> CSV Format Instructions</h6>
+        <p>The CSV file must contain the following columns (in any order):</p>
+        <ul>
+            <li><code>name</code> – Full name of employee</li>
+            <li><code>email</code> – Unique email address</li>
+            <li><code>password</code> – Plain text password (will be hashed)</li>
+            <li><code>position</code> – Job position (optional, default: Staff)</li>
+            <li><code>daily_rate</code> – Daily salary in PHP (optional, default: 500)</li>
+        </ul>
+        <h6>Example CSV content:</h6>
+        <pre class="bg-light p-2" style="border-radius: 8px;">
+name,email,password,position,daily_rate
+John Dela Cruz,john.dela@example.com,pass123,Sales and Marketing Staff,550
+Maria Santos,maria.santos@example.com,pass456,HR Officer,600
+Carlos Reyes,carlos.reyes@example.com,pass789,Delivery Driver,480
+        </pre>
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle"></i> <strong>Note:</strong> Duplicate emails will be skipped automatically. The system will report how many employees were successfully imported.
+        </div>
+    </div>
+</div>
+{% endblock %}

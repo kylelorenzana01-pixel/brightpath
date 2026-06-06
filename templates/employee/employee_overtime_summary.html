@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>My Overtime Summary | BrightPath</title>
+    <style>
+        @media print {
+            .no-print { display: none !important; }
+            body { margin: 0; padding: 0; background: white; font-size: 11pt; }
+            @page { size: A4; margin: 1.5cm; }
+            .letterhead { margin-bottom: 1cm; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { border: 1px solid #ddd; padding: 6px; }
+            .signatory-section { margin-top: 1.5cm; display: flex; justify-content: space-between; }
+            .footer { margin-top: 1cm; text-align: center; font-size: 9pt; }
+        }
+        body { font-family: 'Segoe UI', Arial, sans-serif; padding: 20px; background: #f0f2f5; }
+        .letterhead { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #2c3e50; padding-bottom: 20px; background: white; border-radius: 12px; }
+        .letterhead-content { display: flex; justify-content: center; align-items: center; gap: 15px; flex-wrap: wrap; }
+        .logo-img { max-height: 70px; }
+        .company-name { font-size: 28px; font-weight: bold; color: #2c3e50; }
+        .company-address { font-size: 12px; color: #555; margin-top: 5px; }
+        .report-title { font-size: 20px; margin: 20px 0; text-align: center; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .text-end { text-align: right; }
+        .signatory-section { margin-top: 50px; display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
+        .signatory-box { flex: 1; text-align: center; }
+        .signatory-line { margin-top: 50px; border-top: 1px solid #000; width: 80%; margin-left: auto; margin-right: auto; }
+        .footer { margin-top: 30px; text-align: center; font-size: 10px; color: #777; }
+        .btn-print, .btn-back { background: #3b82f6; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; margin-right: 10px; }
+        .btn-print:hover, .btn-back:hover { background: #2563eb; }
+    </style>
+</head>
+<body>
+    <div class="letterhead">
+        <div class="letterhead-content">
+            <img src="{{ url_for('static', filename='img/logo.png') }}" alt="BrightPath Logo" class="logo-img" onerror="this.style.display='none'">
+            <div>
+                <div class="company-name">BrightPath Trading Co.</div>
+                <div class="company-address">123 Main Street, San Carlos City, Pangasinan, Philippines<br>Tel: (075) 123-4567 | Email: hr@brightpath.com</div>
+            </div>
+        </div>
+    </div>
+    <div class="report-title">OVERTIME SUMMARY</div>
+    <div class="no-print" style="margin-bottom: 20px;">
+        <button class="btn-print" id="printBtn">🖨️ Print / PDF</button>
+        <button class="btn-back" id="backBtn">← Back to Dashboard</button>
+    </div>
+    <h3>Employee: {{ employee.name }} ({{ employee.position }})</h3>
+    <p>Period: {{ start_date }} to {{ end_date }}</p>
+    <table>
+        <thead><tr><th>Total Overtime Hours</th><th>Overtime Pay (₱)</th></tr></thead>
+        <tbody><tr><td>{{ total_hours }}</td><td class="text-end">₱{{ "{:,.2f}".format(overtime_pay) }}</td></tr></tbody>
+    </table>
+    <div class="signatory-section">
+        <div class="signatory-box"><div class="signatory-line"></div><p>Prepared by:<br><strong>{{ session.name }}</strong></p></div>
+        <div class="signatory-box"><div class="signatory-line"></div><p>Checked by:<br><strong>HR Manager</strong></p></div>
+        <div class="signatory-box"><div class="signatory-line"></div><p>Approved by:<br><strong>General Manager</strong></p></div>
+    </div>
+    <div class="footer">This is a system-generated report. For verification, contact HR.</div>
+    <script>
+        document.getElementById('printBtn').addEventListener('click', function() { window.print(); });
+        document.getElementById('backBtn').addEventListener('click', function() { window.location.href = "{{ url_for('employee_dashboard') }}"; });
+    </script>
+</body>
+</html>

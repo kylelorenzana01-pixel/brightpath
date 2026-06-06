@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Scan | BrightPath</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/biometric.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .video-card { position: relative; z-index: 1; pointer-events: auto !important; }
+        #open-cam-btn { position: relative; z-index: 999; cursor: pointer !important; pointer-events: auto !important; transition: transform 0.2s; }
+        #open-cam-btn:hover { transform: scale(1.05); background-color: #2980b9 !important; }
+        #camera-container { position: relative; width: 100%; height: 300px; background: #111; border-radius: 15px; overflow: hidden; display: flex; align-items: center; justify-content: center; border: 2px solid #333; margin-bottom: 20px; }
+    </style>
+</head>
+<body style="background: #121212; color: white; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0;">
+    <div class="login-card" style="width: 100%; max-width: 450px; text-align: center;">
+        <div class="header" style="margin-bottom: 30px;">
+            <i class="fas fa-user-shield" style="font-size: 3rem; color: #3498db; margin-bottom: 15px;"></i>
+            <h2 style="margin: 0;">Employee Face Scan</h2>
+            <p style="color: #888; margin-top: 5px;">Verifying identity for BrightPath System</p>
+        </div>
+        <div class="video-card">
+            <div id="camera-container">
+                <div id="camera-placeholder" style="text-align: center;">
+                    <i class="fas fa-video-slash" style="font-size: 4rem; color: #333; margin-bottom: 10px; display: block;"></i>
+                    <p style="color: #555;">Camera is currently turned off</p>
+                </div>
+                <img id="video-feed" src="" style="width: 100%; height: 100%; object-fit: cover; display: none;">
+            </div>
+            <div class="controls">
+                <button id="open-cam-btn" onclick="startCamera()" 
+                        style="background: #3498db; color: white; border: none; padding: 15px 30px; border-radius: 50px; font-weight: bold; font-size: 1rem; cursor: pointer; display: inline-flex; align-items: center; gap: 10px; box-shadow: 0 4px 15px rgba(52,152,219,0.3);">
+                    <i class="fas fa-camera"></i> OPEN CAMERA TO SCAN
+                </button>
+                <p id="status" style="margin-top: 20px; color: #777; font-size: 0.9rem;">Ready to scan...</p>
+            </div>
+        </div>
+        <div style="margin-top: 30px;">
+            <a href="/" onclick="stopCameraForce()" style="color: #444; text-decoration: none; font-size: 0.9rem;">
+                <i class="fas fa-arrow-left"></i> Back to Selection
+            </a>
+        </div>
+    </div>
+
+    <script>
+        let scanning = false;
+        let pollingInterval = null;
+
+        function startCamera() {
+            const videoFeed = document.getElementById('video-feed');
+            const placeholder = document.getElementById('camera-placeholder');
+            const statusText = document.getElementById('status');
+            const btn = document.getElementById('open-cam-btn');
+
+            // I-reset ang state
+            if (pollingInterval) clearInterval(pollingInterval);
+            scanning = true;
+
+            videoFeed.src = "{{ url_for('video_feed') }}?t=" + new Date().getTime();
+            videoFeed.style.display = 'block';
+            placeholder.style.display = 'none';
+            statusText.innerText = "Loading camera...";
+            statusText.style.color = "#3498db";
+            btn.style.display = 'none';
+
+            // Kapag nag-load na ang video, saka magsimula ng polling
+            videoFeed.onload = function() {
+                statusText.innerText = "Scanning face... Please stay still.";
+                startPolling(statusText);
+            };
+            videoFeed.onerror = function() {
+                statusText.innerText = "Failed to load camera. Please check permissions.";
+                statusText.style.color = "red";
+                btn.style.display = 'inline-flex';
+                scanning = false;
+            };
+        }
+
+        function startPolling(statusText) {
+            if (pollingInterval) clearInterval(pollingInterval);
+            let attempts = 0;
+            const maxAttempts = 15;
+
+            pollingInterval = setInterval(async () => {
+                if (!scanning) return;
+                attempts++;
+                statusText.innerText = `Authenticating (${attempts}/${maxAttempts})...`;
+
+                try {
+                    const response = await fetch('/login_with_face', { method: 'POST' });
+                    const data = await response.json();
+                    if (data.success === true) {
+                        clearInterval(pollingInterval);
+                        scanning = false;
+                        statusText.innerText = "Identity Verified! Redirecting...";
+                        statusText.style.color = "#2ecc71";
+                        setTimeout(() => { window.location.href = data.redirect; }, 1500);
+                    } else if (attempts >= maxAttempts) {
+                        clearInterval(pollingInterval);
+                        scanning = false;
+                        statusText.innerText = "Face not recognized. Try manual login.";
+                        statusText.style.color = "#e74c3c";
+                        document.getElementById('open-cam-btn').style.display = 'inline-flex';
+                    }
+                } catch (err) {
+                    console.error("Polling error:", err);
+                    if (attempts >= maxAttempts) {
+                        clearInterval(pollingInterval);
+                        scanning = false;
+                        statusText.innerText = "Connection error. Please try again.";
+                        document.getElementById('open-cam-btn').style.display = 'inline-flex';
+                    }
+                }
+            }, 2000);
+        }
+
+        function stopCameraForce() {
+            scanning = false;
+            if (pollingInterval) clearInterval(pollingInterval);
+            fetch('/stop_camera').catch(e => console.log(e));
+        }
+    </script>
+</body>
+</html>
