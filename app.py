@@ -37,8 +37,7 @@ else:
     print("ℹ️ Face login is disabled for online deployment – skipping training.")
 
 # Email imports
-from flask_mail import Mail, Message
-
+# from flask_mail import Mail, Message
 # Setup Logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
